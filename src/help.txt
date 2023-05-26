@@ -1,0 +1,7 @@
+This is a script for downloading and copying local music to a given directory.
+
+Arguments:
+
+	-i/--input [x]			Adds file [x] as input file, this can be used multiple times, to parse multiple files.
+	-o/--output [x]			Sets file [x] as the output directory. This directory must already exist. There can't be multiple output directories.
+	-h/--help			Print this text and exit.
