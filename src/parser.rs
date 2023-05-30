@@ -96,10 +96,13 @@ pub fn parse(text: &String) -> Vec<SongDesc>{
                     is_file_url: is_file_url,
                     cover: match is_cover_url {
                                 true => "".to_owned(),
-                                false => default_path.clone()
+                                false => match cover == "None" {
+                                    false => default_path.clone(),
+                                    true => "".to_string()
+                                }
                             } + &match is_cover_url {
                                 true => cover,
-                                false =>  ensure_that_a_string_does_not_begin_with_a_forward_slash(&cover)
+                                false => ensure_that_a_string_does_not_begin_with_a_forward_slash(&cover),
                             },
                     is_cover_url: is_cover_url
                 }

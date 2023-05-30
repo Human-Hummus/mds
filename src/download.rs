@@ -15,12 +15,14 @@ const CLR: Fg<color::Reset> = color::Fg(color::Reset);
 pub fn download(todo: Vec<SongDesc>, outdir: String, fex: String){
     let mut x = 0;
     while x < todo.len(){
+        //println!("infile: {}", todo[x].infile);
         let infile:String;
         let cover:String;
         let title = todo[x].name.clone();
         if is_done(&title, &outdir, &fex){println!("{}file \"{}\" is already present.{}", GREEN, title, CLR);x+=1;continue;}
         if todo[x].is_file_url{
             infile = tmp_ytdlp(&todo[x].infile, &fex);
+            //println!("newinfile: {}", infile);
             if infile == "ERR"{
                 println!("{}Fatal error while downloading \"{}\".{}", RED, title, CLR);
                 x+=1;
@@ -60,7 +62,7 @@ fn download_cover_art(infile: &String, title: &String) -> String{
         if !(toret == "ERR"){
             return toret;
         }
-        println!("Failed to automatically download cover art for \"{}\". This can be ignoRED.", title);
+        println!("Failed to automatically download cover art for \"{}\". This can be ignored.", title);
         return "None".to_string();
     }
     if infile.contains("https://youtu.be"){
@@ -68,13 +70,14 @@ fn download_cover_art(infile: &String, title: &String) -> String{
         if !(toret == "ERR"){
             return toret;
         }
-        println!("Failed to automatically download cover art for \"{}\". This can be ignoRED.", title);
+        println!("Failed to automatically download cover art for \"{}\". This can be ignored.", title);
         return "None".to_string();
     }
     return "None".to_string();
 }
 
 fn final_ffmpeg(cover: &String, outputfile: &String, infile: &String){
+    //println!("fffmpeg: cover: {}, outputofle: {}, infile: {}",cover,outputfile,infile);
     if cover == "None"{
         match std::process::Command::new("ffmpeg")
             .arg("-i").arg(infile.trim().to_owned())
