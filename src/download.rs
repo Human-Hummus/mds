@@ -12,24 +12,13 @@ const YELLOW: Fg<color::Yellow> = color::Fg(color::Yellow);
 const RED: Fg<color::Red> = color::Fg(color::Red);
 const CLR: Fg<color::Reset> = color::Fg(color::Reset);
 
-pub fn download(todo: Vec<SongDesc>, outdir: String, fex: String){
+pub fn download(todo: Vec<SongDesc>, outdir: String, filetype: char){
     let mut x = 0;
     while x < todo.len(){
-        //println!("infile: {}", todo[x].infile);
         let infile:String;
         let cover:String;
         let title = todo[x].name.clone();
-        if is_done(&title, &outdir, &fex){println!("{}file \"{}\" is already present.{}", GREEN, title, CLR);x+=1;continue;}
-        if todo[x].is_file_url{
-            infile = tmp_ytdlp(&todo[x].infile, &fex);
-            //println!("newinfile: {}", infile);
-            if infile == "ERR"{
-                println!("{}Fatal error while downloading \"{}\".{}", RED, title, CLR);
-                x+=1;
-                continue;
-            }
-        }
-        else {infile = todo[x].infile.clone();}
+        if is_done(&title, &outdir){println!("{}file \"{}\" is already present.{}", GREEN, title, CLR);x+=1;continue;}
         if todo[x].is_cover_url{
             cover = wget_cover(&todo[x].cover);
             if cover == "ERR"{
@@ -37,16 +26,29 @@ pub fn download(todo: Vec<SongDesc>, outdir: String, fex: String){
             }
         }
         else if todo[x].cover == "None" && todo[x].is_file_url{
-            cover = download_cover_art(&infile, &title);
+            cover = download_cover_art(&todo[x].infile, &title);
         }
         else{
             cover = (&todo[x].cover).to_string();
         }
-        let outfile:String = ensure_string_terminates_with_fwd_slash(&outdir) + &(title.clone() + &fex).trim().to_owned();
+        if todo[x].is_file_url{
+            println!("tdx {:?}", todo[x]);
+            infile = tmp_ytdlp(&todo[x].infile);
+            if infile == "ERR"{
+                println!("{}Fatal error while downloading \"{}\".{}", RED, title, CLR);
+                x+=1;
+                continue;
+            }
+        }
+        else {infile = todo[x].infile.clone();}
 
-        final_ffmpeg(&cover, &outfile, &infile);
-        if todo[x].is_file_url{std::process::Command::new("rm").arg("-f").arg(infile).status().expect("Error");}
-        if todo[x].is_cover_url && cover != "None" {std::process::Command::new("rm").arg("-f").arg(cover).status().expect("Error");}
+        let final_fex = find_file_extension(filetype);
+
+        let outfile:String = format!("{}{}", ensure_string_terminates_with_fwd_slash(&outdir), (title.clone() + &final_fex).trim().to_owned());
+
+        final_ffmpeg(&cover, &outfile, &infile, filetype);
+        //if todo[x].is_file_url{std::process::Command::new("rm").arg("-f").arg(infile).status().expect("Error");}
+        //if todo[x].is_cover_url && cover != "None" {std::process::Command::new("rm").arg("-f").arg(cover).status().expect("Error");}
         
 
 
@@ -55,9 +57,21 @@ pub fn download(todo: Vec<SongDesc>, outdir: String, fex: String){
     
 }
 
+fn find_file_extension(ftype:char) -> String{
+    return match ftype{
+        'f' => ".flac",
+        'o' => ".opus",
+        'm' => ".mp3",
+        'w' => ".wav",
+        'v' => ".ogg",
+        'a' => ".aac",
+        _ => panic!("unknown filetype")
+    }.to_string()
+}
 
 fn download_cover_art(infile: &String, title: &String) -> String{
-    if infile.contains("https://youtube.com"){
+    if infile.contains("https://youtube.com") || infile.contains("https://www.youtube.com"){
+        println!("aa");
         let toret = wget_cover(&("https://i.ytimg.com/vi/".to_owned() + &(infile.split("https://www.youtube.com/watch?v=").collect::<Vec<&str>>()[1].to_owned() + "/hqdefault.jpg")));
         if !(toret == "ERR"){
             return toret;
@@ -73,24 +87,50 @@ fn download_cover_art(infile: &String, title: &String) -> String{
         println!("Failed to automatically download cover art for \"{}\". This can be ignored.", title);
         return "None".to_string();
     }
+    println!("a");
     return "None".to_string();
 }
 
-fn final_ffmpeg(cover: &String, outputfile: &String, infile: &String){
-    //println!("fffmpeg: cover: {}, outputofle: {}, infile: {}",cover,outputfile,infile);
+fn final_ffmpeg(cover: &String, outputfile: &String, infile: &String, ftype: char){
+    let codec:String = match ftype{
+        'f' => "flac",
+        'o' => "libopus",
+        'm' => "mp3",
+        'w' => "wav",
+        'v' => "libvorbis",
+        'a' => "aac",
+        _ => panic!("unknown filetype")
+    }.to_string();
+    let bitrate:String = match ftype{
+        'f' => "0",
+        'o' => "192k",
+        'm' => "320k",
+        'w' => "0",
+        'v' => "224k",
+        'a' => "256k",
+        _ => panic!("unknown filetype")
+            
+    }.to_string();
     if cover == "None"{
+        println!("1");
         match std::process::Command::new("ffmpeg")
             .arg("-i").arg(infile.trim().to_owned())
+            .arg("-c:a").arg(codec)
+            .arg("-b:a").arg(bitrate)
             .arg(outputfile).status(){
                 Ok(_) => println!("{}created file {}{}", GREEN, outputfile, CLR),
                 Err(_) => println!("{}fatal ffmpeg error on file {}{}", RED, outputfile, CLR)
             }
     }
     else{ 
+        println!("2");
         match std::process::Command::new("ffmpeg")
             .arg("-i").arg(infile.trim().to_owned())
             .arg("-i").arg(cover.trim().to_owned())
-            .arg("-map").arg("0").arg("-map").arg("1")
+            .arg("-map").arg("0:a").arg("-map").arg("1:v")
+            .arg("-c:a").arg(codec)
+            .arg("-b:a").arg(bitrate)
+            .arg("-disposition:1").arg("attached_pic")
             .arg(outputfile).status(){ 
                 Ok(_) => println!("{}created file {}{}", GREEN, outputfile, CLR),
                 Err(_) => println!("{}fatal ffmpeg error on file {}{}", RED, outputfile, CLR)
@@ -103,9 +143,12 @@ fn final_ffmpeg(cover: &String, outputfile: &String, infile: &String){
 fn wget_cover(url:&String)->String{
     let mut newfilename = gen_filename(&"".to_string());
     newfilename = match 
-        std::process::Command::new("wget").arg(url).arg("-o").arg(newfilename.clone()).status()
+        std::process::Command::new("wget").arg(url).arg("-O").arg(newfilename.clone()).status()
     {
-        Ok(_) => newfilename,
+        Ok(k) => match k.success(){
+            true => newfilename,
+            false => "ERR".to_string()
+        },
         Err(_) => "ERR".to_string()
 
     };
@@ -126,15 +169,18 @@ fn gen_filename(fex: &String) -> String{
 
 }
 
-fn tmp_ytdlp(url: &String, fex: &String) -> String{
-    let mut newfilename = gen_filename(&(".".to_owned() + fex));
+fn tmp_ytdlp(url: &String) -> String{
+    let mut newfilename = gen_filename(&".flac".to_owned());
     newfilename = match 
-        std::process::Command::new("yt-dlp").arg(url).arg("-x").arg("--audio-format").arg("flac").arg("-o").arg(newfilename.clone()).status()
-    {
-        Ok(_) => newfilename,
-        Err(_) => "ERR".to_string()
+        std::process::Command::new("yt-dlp")
+        .arg(url).
+        arg("-x").
+        arg("--audio-format").arg("flac").
+        arg("-o").arg(newfilename.clone()).status(){
+            Ok(_) => newfilename,
+            Err(_) => "ERR".to_string()
+        };
 
-    };
     return newfilename
 
 }
@@ -146,13 +192,21 @@ pub fn ensure_string_terminates_with_fwd_slash(string: &String) -> String{
     return string.to_string();
 }
 
-fn is_done(title: &String, dir: &String, fex: &String) -> bool{
-    let theoretical_file_name = ensure_string_terminates_with_fwd_slash(dir) + title + fex;
+fn is_done(title: &String, dir: &String) -> bool{
+    let theoretical_file_name = ensure_string_terminates_with_fwd_slash(dir) + title;
     let files = fs::read_dir(dir).unwrap();
     for file in files {
-        if theoretical_file_name == file.unwrap().path().display().to_string(){
+        let file_no_ex = remove_fex(file.unwrap().path().display().to_string());
+        if theoretical_file_name == file_no_ex{
             return true;
         }
     }
     return false;
+}
+
+
+//remove file extension
+fn remove_fex(mut filename: String) -> String{
+    while filename.len() > 1 && filename.pop().unwrap() != '.'{}
+    return filename;
 }

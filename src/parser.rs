@@ -1,5 +1,6 @@
 use crate::download::ensure_string_terminates_with_fwd_slash;
 
+#[derive(Debug)]
 pub struct SongDesc {
     pub name: String,
     pub infile: String,
@@ -50,7 +51,7 @@ pub fn parse(text: &String) -> Vec<SongDesc>{
         let mut infile:String = String::new();
         let mut is_file_url = false;
         let mut title:String = String::new();
-        let mut cover:String = String::from("None");
+        let mut cover:String = String::new();
         let mut is_cover_url = false;
         
         if line[x] == '!'{x+=1;is_file_url=true;}
@@ -66,13 +67,16 @@ pub fn parse(text: &String) -> Vec<SongDesc>{
             title.push(line[x]);
             x+=1;
         }
-        let _ = title.trim().to_owned();
+        title = title.trim().to_owned();
         if title.len() == 0{println!("Error on line {}; unspecified track name", line_num); continue 'floop;}
+        x+=1;
         while x < line.len() && line[x] != '|'{
             cover.push(line[x]);
             x+=1;
         }
-        let _ = cover.trim().to_owned();
+        println!("c0: \"{}\"", cover);
+        cover = cover.trim().to_owned();
+        println!("c1: \"{}\"", cover);
         if cover.len() < 2{
             cover = String::from("None");
         }
@@ -82,17 +86,18 @@ pub fn parse(text: &String) -> Vec<SongDesc>{
                 is_cover_url = true;
             }
         }
+        println!("c2: \"{}\"", cover);
 
         output.push(
                 SongDesc{
                     name: title.trim().to_owned(),
-                    infile: match is_file_url {
+                    infile: (match is_file_url {
                                 true => "".to_owned(),
                                 false => default_path.clone()
                             } + &match is_file_url {
                                 true => infile,
                                 false =>  ensure_that_a_string_does_not_begin_with_a_forward_slash(&infile)
-                            },
+                            }).trim().to_owned(),
                     is_file_url: is_file_url,
                     cover: match is_cover_url {
                                 true => "".to_owned(),
