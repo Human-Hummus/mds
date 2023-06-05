@@ -4,6 +4,7 @@ mod parser;
 extern crate termion;
 use termion::color::Fg;
 use termion::{color};
+mod output;
 
 const GREEN: Fg<color::Green> = color::Fg(color::Green);
 const YELLOW: Fg<color::Yellow> = color::Fg(color::Yellow);
@@ -29,7 +30,7 @@ fn safe_read_d(dirpath: &String) -> Vec<String>{
                 }
                 return out;
             },
-        Err(_) => {eprintln!("fatal error: unknown file \"{}\"", dirpath); std::process::exit(1);}
+        Err(_) => {fatal!(format!("fatal error: unknown file \"{}\"", dirpath))}
     }
 }
 

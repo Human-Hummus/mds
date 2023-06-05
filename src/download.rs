@@ -7,6 +7,8 @@ use termion::color::Fg;
 use rand::distributions::Distribution;
 use termion::{color};
 mod cover;
+mod crate::output;
+use output::*;
 
 const GREEN: Fg<color::Green> = color::Fg(color::Green);
 const YELLOW: Fg<color::Yellow> = color::Fg(color::Yellow);
@@ -20,7 +22,7 @@ pub fn download(todo: Vec<SongDesc>, outdir: String, filetype: char){
         let cover:String;
         let title = todo[x].name.clone();
         
-        if is_done(&title, &outdir){println!("{}file \"{}\" is already present.{}", GREEN, title, CLR);x+=1;continue;}
+        if is_done(&title, &outdir){alert!(format!("file \"{}\" is already present.", title));x+=1;continue;}
 
         cover = cover::process_cover(&todo[x].cover, todo[x].is_cover_url, todo[x].is_file_url, &todo[x].infile, &title);
         
