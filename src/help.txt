@@ -10,7 +10,7 @@ Arguments:
 
 Possible formats:
 	(f)lac		-	Lossless FLAC format.
-	(o)pus		-	Lossy Opus format, stored at 192kbps.
+	(o)pus		-	Lossy Opus format, stored at 192kbps.(really iffy, it's not a great idea to use it; Some ffmpeg issues.)
 	(m)p3		-	Lossy MP3 format, stored at 320kbps.
 	(w)av		-	Uncompressed Wav format.
 	(v)orbis	-	Lossy Vorbis format, stored at 224kbps.

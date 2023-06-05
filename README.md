@@ -22,3 +22,5 @@ This one's less obvious. This is the variable that is appended to the beginning 
  Another thing that is **very** important: the excamation mark(!). when the ! is appended to the beginning of the value for the cover art or input file, i.e(!yeet.mp3 | ... | !cover.png), the file will be treated as a link to a remote file. This link will be passed to yt-dlp in the case of the input file, and wget in the case of the cover art. It will then be  converted into a local file in the /tmp/ directory, and the process will continue from there as normal. 
 
  Also, it's possible, if you supply a link and not a cover, that MDS will be able to find the cover art on its own. This is rather buggy, and currently only works with Soundcloud and Youtube, but it's pretty neat. 
+
+ ANOTHER note: opus codec is really iffy, it's not a great idea to use it; Some ffmpeg issues. 
