@@ -4,4 +4,16 @@ Arguments:
 
 	-i/--input [x]			Adds file [x] as input file, this can be used multiple times, to parse multiple files.
 	-o/--output [x]			Sets file [x] as the output directory. This directory must already exist. There can't be multiple output directories.
+	-f/--format [x]			Sets format [x] as the output format.
 	-h/--help			Print this text and exit.
+
+
+Possible formats:
+	(f)lac		-	Lossless FLAC format.
+	(o)pus		-	Lossy Opus format, stored at 192kbps.
+	(m)p3		-	Lossy MP3 format, stored at 320kbps.
+	(w)av		-	Uncompressed Wav format.
+	(v)orbis	-	Lossy Vorbis format, stored at 224kbps.
+	(a)ac		-	Lossy AAC format, stored at 256kbps.
+
+you can type the full name of any of these formats, or you can type the single charecters in parenthesis. Case insensitive.
