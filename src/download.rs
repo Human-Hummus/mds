@@ -1,19 +1,10 @@
 use std::fs;
 use rand;
-extern crate termion;
 use crate::parser::SongDesc;
 use rand::distributions::Uniform;
-use termion::color::Fg;
 use rand::distributions::Distribution;
-use termion::{color};
 mod cover;
-mod crate::output;
-use output::*;
-
-const GREEN: Fg<color::Green> = color::Fg(color::Green);
-const YELLOW: Fg<color::Yellow> = color::Fg(color::Yellow);
-const RED: Fg<color::Red> = color::Fg(color::Red);
-const CLR: Fg<color::Reset> = color::Fg(color::Reset);
+use crate::*;
 
 pub fn download(todo: Vec<SongDesc>, outdir: String, filetype: char){
     let mut x = 0;
@@ -27,10 +18,10 @@ pub fn download(todo: Vec<SongDesc>, outdir: String, filetype: char){
         cover = cover::process_cover(&todo[x].cover, todo[x].is_cover_url, todo[x].is_file_url, &todo[x].infile, &title);
         
         if todo[x].is_file_url{
-            println!("tdx {:?}", todo[x]);
+            alert!(format!("tdx {:?}", todo[x]));
             infile = tmp_ytdlp(&todo[x].infile);
             if infile == "ERR"{
-                println!("{}Fatal error while downloading \"{}\".{}", RED, title, CLR);
+                error!(format!("Fatal error while downloading \"{}\".", title));
                 x+=1;
                 continue;
             }
@@ -88,8 +79,8 @@ fn final_ffmpeg(cover: &String, outputfile: &String, infile: &String, ftype: cha
             .arg("-c:a").arg(codec)
             .arg("-b:a").arg(bitrate)
             .arg(outputfile).status(){
-                Ok(_) => println!("{}created file {}{}", GREEN, outputfile, CLR),
-                Err(_) => println!("{}fatal ffmpeg error on file {}{}", RED, outputfile, CLR)
+                Ok(_) => alert!(format!("created file {}", outputfile)),
+                Err(_) => {error!(format!("fatal ffmpeg error on file {}", outputfile))}
             }
     }
     else{ 
@@ -102,8 +93,8 @@ fn final_ffmpeg(cover: &String, outputfile: &String, infile: &String, ftype: cha
             .arg("-b:a").arg(bitrate)
             .arg("-disposition:1").arg("attached_pic")
             .arg(outputfile).status(){ 
-                Ok(_) => println!("{}created file {}{}", GREEN, outputfile, CLR),
-                Err(_) => println!("{}fatal ffmpeg error on file {}{}", RED, outputfile, CLR)
+                Ok(_) => alert!(format!("created file {}",outputfile, )),
+                Err(_) => error!(format!("fatal ffmpeg error on file {}",  outputfile))
             }
     }
 }

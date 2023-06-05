@@ -1,25 +1,15 @@
-extern crate termion;
-use crate::parser::SongDesc;
-use termion::color::Fg;
-use termion::{color};
 use crate::download::gen_filename;
-
-const GREEN: Fg<color::Green> = color::Fg(color::Green);
-const YELLOW: Fg<color::Yellow> = color::Fg(color::Yellow);
-const RED: Fg<color::Red> = color::Fg(color::Red);
-const CLR: Fg<color::Reset> = color::Fg(color::Reset);
-const BLUE: Fg<color::Blue> = color::Fg(color::Blue);
-
+use crate::*;
 
 //the output is a filename OR "None".
 pub fn process_cover(og_cover: &String, is_url: bool, is_infile_link: bool, infile: &String, title: &String) -> String{
     if is_url{
         let new_cover = wget_cover(og_cover);
         if new_cover == "ERR"{
-            println!("{}Alert: unable to download cover for \"{}\"{}", YELLOW, title, CLR);
+            debug!(format!("Alert: unable to download cover for \"{}\"", title));
             return String::from("None");
         }
-        println!("{}Successfully downloaded cover art for \"{}\" automatically!{}",GREEN,title,CLR);
+        alert!(format!("Successfully downloaded cover art for \"{}\" automatically!",title));
         return new_cover;
     }
     else if og_cover == "None" && is_infile_link{
@@ -38,7 +28,7 @@ fn download_cover_art(infile: &String, title: &String) -> String{
         if !(toret == "ERR"){
             return toret;
         }
-        println!("{}Failed to automatically download cover art for \"{}\". This can be ignored.{}", YELLOW, title, CLR);
+        debug!(format!("Failed to automatically download cover art for \"{}\". This can be ignored.", title));
         return "None".to_string();
     }
     if infile.contains("https://youtu.be"){
@@ -47,7 +37,7 @@ fn download_cover_art(infile: &String, title: &String) -> String{
         if !(toret == "ERR"){
             return toret;
         }
-        println!("Failed to automatically download cover art for \"{}\". This can be ignored.", title);
+        debug!(format!("Failed to automatically download cover art for \"{}\". This can be ignored.", title));
         return "None".to_string();
     }
     return "None".to_string();

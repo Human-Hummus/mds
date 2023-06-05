@@ -2,20 +2,14 @@ use std::env;
 mod download;
 mod parser;
 extern crate termion;
-use termion::color::Fg;
-use termion::{color};
-mod output;
-
-const GREEN: Fg<color::Green> = color::Fg(color::Green);
-const YELLOW: Fg<color::Yellow> = color::Fg(color::Yellow);
-const RED: Fg<color::Red> = color::Fg(color::Red);
-const CLR: Fg<color::Reset> = color::Fg(color::Reset);
+#[macro_use]
+pub mod output;
 
 
 fn safe_read_f(filepath: &String) -> String{
     return match std::fs::read_to_string(filepath){
         Ok(file) => {file},
-        Err(_) => {eprintln!("fatal error: unknown file \"{}\"", filepath); std::process::exit(1);}
+        Err(_) => {fatal!(format!("fatal error: unknown file \"{}\"", filepath))}
     }
 }
 fn safe_read_d(dirpath: &String) -> Vec<String>{
@@ -25,12 +19,12 @@ fn safe_read_d(dirpath: &String) -> Vec<String>{
                 for i in file{
                     out.push(match i{
                         Ok(path) => {path.path()}
-                        Err(_) => {eprintln!("fatal error: error reading directory \"{}\"", dirpath);std::process::exit(1);}
+                        Err(_) => {fatal!(format!("fatal error: error reading directory \"{}\"", dirpath))}
                     }.display().to_string());
                 }
                 return out;
             },
-        Err(_) => {fatal!(format!("fatal error: unknown file \"{}\"", dirpath))}
+        Err(_) => fatal!(format!("fatal error: unknown file \"{}\"", dirpath))
     }
 }
 
@@ -51,8 +45,7 @@ fn main() {
 
             //check that the argument is complete.
             if x == args.len(){
-                println!("{}fatal error: incomplete input argument.{}",RED,CLR);
-                std::process::exit(1);
+                fatal!("fatal error: incomplete input argument.");
             }
 
             //read the file.
@@ -62,17 +55,17 @@ fn main() {
         else if args[x] == "-o" || args[x] == "--output"{
             x+=1;
             //check for a complete argument
-            if x == args.len(){println!("{}fatal error: output directory arguemnt incomplete.{}",RED,CLR);std::process::exit(1);}
+            if x == args.len(){fatal!("fatal error: output directory arguemnt incomplete.")}
 
             safe_read_d(&args[x]);
             output = args[x].to_string();
             x+=1;
         }
         else if args[x] == "--format" || args[x] == "-f"{
-            if x == args.len(){println!("{}fatal error: output directory arguemnt incomplete.{}",RED,CLR);std::process::exit(1);}
+            if x == args.len(){fatal!("fatal error: output directory arguemnt incomplete.")}
             x+=1;
             let axl = args[x].to_lowercase().trim().to_owned();
-            println!("argxlow: {}", axl);
+            debug!(format!("argxlow: {}", axl));
             if axl == "f"|| axl == "flac"{
                 outtype = 'f';
             }
@@ -91,16 +84,16 @@ fn main() {
             else if axl == "a" || axl == "aac"{
                 outtype = 'a'
             }
-            else{println!("{}fatal error: invalid format{}",RED,CLR);}
+            else{fatal!("fatal error: invalid format")}
             x+=1;
         }
         else{
-            println!("{}warning: unknown argument: \"{}\"{}", YELLOW, args[x], CLR);
+            warn!(format!("warning: unknown argument: \"{}\"", args[x]));
             x+=1;
         }
     }
-    if text.len() < 1{println!("{}fatal error: no input file(s) specified{}", RED,CLR);std::process::exit(1)}
-    if output.len() < 1{println!("{}fatal error: no output directory specified{}", RED,CLR);std::process::exit(1);}
+    if text.len() < 1{fatal!("fatal error: no input file(s) specified")}
+    if output.len() < 1{fatal!("fatal error: no output directory specified")}
     
     let stuff = parser::parse(&text);
     download::download(stuff, output, outtype);

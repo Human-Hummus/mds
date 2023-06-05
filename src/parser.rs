@@ -1,4 +1,5 @@
 use crate::download::ensure_string_terminates_with_fwd_slash;
+use crate::*;
 
 #[derive(Debug)]
 pub struct SongDesc {
@@ -61,22 +62,20 @@ pub fn parse(text: &String) -> Vec<SongDesc>{
             x+=1;
         }
         let _ = infile.trim().to_owned();
-        if infile.len() == 0 {println!("Error on line{}; unspecified input file.", line_num); continue 'floop}
+        if infile.len() == 0 {error!(format!("Error on line{}; unspecified input file.", line_num)); continue 'floop}
         x+=1;
         while x < line.len() && line[x] != '|'{
             title.push(line[x]);
             x+=1;
         }
         title = title.trim().to_owned();
-        if title.len() == 0{println!("Error on line {}; unspecified track name", line_num); continue 'floop;}
+        if title.len() == 0{error!(format!("Error on line {}; unspecified track name", line_num)); continue 'floop;}
         x+=1;
         while x < line.len() && line[x] != '|'{
             cover.push(line[x]);
             x+=1;
         }
-        println!("c0: \"{}\"", cover);
         cover = cover.trim().to_owned();
-        println!("c1: \"{}\"", cover);
         if cover.len() < 2{
             cover = String::from("None");
         }
@@ -86,7 +85,6 @@ pub fn parse(text: &String) -> Vec<SongDesc>{
                 is_cover_url = true;
             }
         }
-        println!("c2: \"{}\"", cover);
 
         output.push(
                 SongDesc{
