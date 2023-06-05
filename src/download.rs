@@ -6,6 +6,7 @@ use rand::distributions::Uniform;
 use termion::color::Fg;
 use rand::distributions::Distribution;
 use termion::{color};
+mod cover;
 
 const GREEN: Fg<color::Green> = color::Fg(color::Green);
 const YELLOW: Fg<color::Yellow> = color::Fg(color::Yellow);
@@ -18,19 +19,11 @@ pub fn download(todo: Vec<SongDesc>, outdir: String, filetype: char){
         let infile:String;
         let cover:String;
         let title = todo[x].name.clone();
+        
         if is_done(&title, &outdir){println!("{}file \"{}\" is already present.{}", GREEN, title, CLR);x+=1;continue;}
-        if todo[x].is_cover_url{
-            cover = wget_cover(&todo[x].cover);
-            if cover == "ERR"{
-                println!("{}Warning: unable to download cover for \"{}\"{}", YELLOW, title, CLR);
-            }
-        }
-        else if todo[x].cover == "None" && todo[x].is_file_url{
-            cover = download_cover_art(&todo[x].infile, &title);
-        }
-        else{
-            cover = (&todo[x].cover).to_string();
-        }
+
+        cover = cover::process_cover(&todo[x].cover, todo[x].is_cover_url, todo[x].is_file_url, &todo[x].infile, &title);
+        
         if todo[x].is_file_url{
             println!("tdx {:?}", todo[x]);
             infile = tmp_ytdlp(&todo[x].infile);
@@ -47,11 +40,8 @@ pub fn download(todo: Vec<SongDesc>, outdir: String, filetype: char){
         let outfile:String = format!("{}{}", ensure_string_terminates_with_fwd_slash(&outdir), (title.clone() + &final_fex).trim().to_owned());
 
         final_ffmpeg(&cover, &outfile, &infile, filetype);
-        //if todo[x].is_file_url{std::process::Command::new("rm").arg("-f").arg(infile).status().expect("Error");}
-        //if todo[x].is_cover_url && cover != "None" {std::process::Command::new("rm").arg("-f").arg(cover).status().expect("Error");}
-        
-
-
+        if todo[x].is_file_url{std::process::Command::new("rm").arg("-f").arg(infile).status().expect("Error");}
+        if todo[x].is_cover_url && cover != "None" {std::process::Command::new("rm").arg("-f").arg(cover).status().expect("Error");}
         x+=1;
     }
     
@@ -67,28 +57,6 @@ fn find_file_extension(ftype:char) -> String{
         'a' => ".aac",
         _ => panic!("unknown filetype")
     }.to_string()
-}
-
-fn download_cover_art(infile: &String, title: &String) -> String{
-    if infile.contains("https://youtube.com") || infile.contains("https://www.youtube.com"){
-        println!("aa");
-        let toret = wget_cover(&("https://i.ytimg.com/vi/".to_owned() + &(infile.split("https://www.youtube.com/watch?v=").collect::<Vec<&str>>()[1].to_owned() + "/hqdefault.jpg")));
-        if !(toret == "ERR"){
-            return toret;
-        }
-        println!("Failed to automatically download cover art for \"{}\". This can be ignored.", title);
-        return "None".to_string();
-    }
-    if infile.contains("https://youtu.be"){
-        let toret = wget_cover(&("https://i.ytimg.com/vi/".to_owned() + &(infile.split("https://www.youtu.be/").collect::<Vec<&str>>()[1].to_owned() + "/hqdefault.jpg")));
-        if !(toret == "ERR"){
-            return toret;
-        }
-        println!("Failed to automatically download cover art for \"{}\". This can be ignored.", title);
-        return "None".to_string();
-    }
-    println!("a");
-    return "None".to_string();
 }
 
 fn final_ffmpeg(cover: &String, outputfile: &String, infile: &String, ftype: char){
@@ -139,23 +107,7 @@ fn final_ffmpeg(cover: &String, outputfile: &String, infile: &String, ftype: cha
 }
 
 
-
-fn wget_cover(url:&String)->String{
-    let mut newfilename = gen_filename(&"".to_string());
-    newfilename = match 
-        std::process::Command::new("wget").arg(url).arg("-O").arg(newfilename.clone()).status()
-    {
-        Ok(k) => match k.success(){
-            true => newfilename,
-            false => "ERR".to_string()
-        },
-        Err(_) => "ERR".to_string()
-
-    };
-    return newfilename
-}
-
-fn gen_filename(fex: &String) -> String{
+pub fn gen_filename(fex: &String) -> String{
     let mut length = 100;
     let chars_allowed = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890-_".chars().collect::<Vec<char>>();
     let mut fname = "/tmp/".to_string();
