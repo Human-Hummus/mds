@@ -45,9 +45,6 @@ pub fn parse(text: &String) -> Vec<SongDesc>{
                 _ =>{break 'linetype}
             }
         }
-        if !(x<line.len()){
-            continue;
-        }
 
         let mut infile:String = String::new();
         let mut is_file_url = false;

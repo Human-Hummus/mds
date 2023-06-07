@@ -5,15 +5,21 @@ use rand::distributions::Uniform;
 use rand::distributions::Distribution;
 mod cover;
 use crate::*;
+use std::fs::ReadDir;
 
 pub fn download(todo: Vec<SongDesc>, outdir: String, filetype: char){
+    let odir = fs::read_dir(outdir.clone()).unwrap(); 
+    let mut files:Vec<String> = Vec::new();
+    for file in odir{                                     
+        files.push(remove_fex(file.unwrap().path().display().to_string()))
+    }
     let mut x = 0;
     while x < todo.len(){
         let infile:String;
         let cover:String;
         let title = todo[x].name.clone();
         
-        if is_done(&title, &outdir){alert!(format!("file \"{}\" is already present.", title));x+=1;continue;}
+        if is_done(&title, &outdir, &files){alert!(format!("file \"{}\" is already present.", title));x+=1;continue;}
 
         cover = cover::process_cover(&todo[x].cover, todo[x].is_cover_url, todo[x].is_file_url, &todo[x].infile, &title);
         
@@ -137,12 +143,11 @@ pub fn ensure_string_terminates_with_fwd_slash(string: &String) -> String{
     return string.to_string();
 }
 
-fn is_done(title: &String, dir: &String) -> bool{
+fn is_done(title: &String, dir: &String, files:&Vec<String>) -> bool{
     let theoretical_file_name = ensure_string_terminates_with_fwd_slash(dir) + title;
-    let files = fs::read_dir(dir).unwrap();
     for file in files {
-        let file_no_ex = remove_fex(file.unwrap().path().display().to_string());
-        if theoretical_file_name == file_no_ex{
+        let file_no_ex = file;
+        if &theoretical_file_name == file_no_ex{
             return true;
         }
     }
