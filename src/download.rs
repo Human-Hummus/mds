@@ -78,18 +78,19 @@ fn final_ffmpeg(cover: &String, outputfile: &String, infile: &String, ftype: cha
             
     }.to_string();
     if cover == "None"{
-        println!("1");
+        debug!("ffmpeg1");
         match std::process::Command::new("ffmpeg")
             .arg("-i").arg(infile.trim().to_owned())
             .arg("-c:a").arg(codec)
             .arg("-b:a").arg(bitrate)
+            .arg("-loglevel").arg("error")
             .arg(outputfile).status(){
                 Ok(_) => alert!(format!("created file {}", outputfile)),
                 Err(_) => {error!(format!("fatal ffmpeg error on file {}", outputfile))}
             }
     }
     else{ 
-        println!("2");
+        debug!("ffmpeg2");
         match std::process::Command::new("ffmpeg")
             .arg("-i").arg(infile.trim().to_owned())
             .arg("-i").arg(cover.trim().to_owned())
@@ -97,6 +98,7 @@ fn final_ffmpeg(cover: &String, outputfile: &String, infile: &String, ftype: cha
             .arg("-c:a").arg(codec)
             .arg("-b:a").arg(bitrate)
             .arg("-disposition:1").arg("attached_pic")
+            .arg("-loglevel").arg("error")
             .arg(outputfile).status(){ 
                 Ok(_) => alert!(format!("created file {}",outputfile, )),
                 Err(_) => error!(format!("fatal ffmpeg error on file {}",  outputfile))
@@ -126,6 +128,7 @@ fn tmp_ytdlp(url: &String) -> String{
         .arg(url).
         arg("-x").
         arg("--audio-format").arg("flac").
+        arg("-q").arg("--progress").
         arg("-o").arg(newfilename.clone()).status(){
             Ok(_) => newfilename,
             Err(_) => "ERR".to_string()

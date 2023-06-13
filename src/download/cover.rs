@@ -32,7 +32,7 @@ fn download_cover_art(infile: &String, title: &String) -> String{
 fn wget_cover(url:&String)->String{
     let newfilename = gen_filename(&"".to_string());
     return match 
-    std::process::Command::new("wget").arg(url).arg("-O").arg(newfilename.clone()).status(){
+    std::process::Command::new("wget").arg("-q").arg(url).arg("-O").arg(newfilename.clone()).status(){
         Ok(k) => match k.success(){
             true => newfilename,
             false => "ERR".to_string()
@@ -69,7 +69,6 @@ fn soundcloud(infile: &String, title:&String) -> String{
     let sc_html_file = wget_cover(infile);
     if sc_html_file == "ERR"{debug!(format!("(0)error downloading cover from soundcloud for \"{}\"", title));return "None".to_string();}
     let contents = fs::read_to_string(sc_html_file.clone()).expect("error; this shouldn't happen...");
-    println!("{}",contents);
     if !(contents.contains("src=\"https://i1.sndcdn.com")){
         Command::new("rm").arg("-f").arg(sc_html_file.clone()).status().expect("This error shouln't be possible...");
         debug!(format!("(1)error downloading cover from soundcloud for \"{}\"",title));

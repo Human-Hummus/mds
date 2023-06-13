@@ -30,6 +30,7 @@ pub fn safe_read_d(dirpath: &String) -> Vec<String>{
 }
 
 fn main() {
+    is_sane();
     let args: Vec<String> = env::args().collect();
     let mut x = 1;
     let mut outtype = 'f'; // can be (F)lac, (O)pus, (M)p3, (W)av, (V)orbis, or (A)ac. always lowercase.
@@ -98,6 +99,16 @@ fn main() {
     
     let stuff = parser::parse(&text);
     download::download(stuff, output, outtype);
+}
 
 
+fn is_sane(){
+    match std::process::Command::new("yt-dlp").arg("--version").status(){
+        Ok(_) => (),
+        Err(_) => fatal!("Fatal error: yt-dlp cannot be found")
+    }
+    match std::process::Command::new("ffmpeg").arg("-version").status(){
+        Ok(_) => (),
+        Err(_) => fatal!("Fatal error: ffmpeg cannot be found")
+    }
 }

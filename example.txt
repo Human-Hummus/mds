@@ -1,5 +1,4 @@
 #this is a comment
-!https://www.youtube.com/watch?v=2ZIpFytCSVc | bruh
 
 
 
@@ -7,5 +6,6 @@
 
 
 */home/user
-
+!https://www.youtube.com/watch?v=2ZIpFytCSVc | bruh
+!https://soundcloud.com/bruh-smoke-productions/bruh-sound-effect-free-download | c - ghost
 bruh.flac | bruhagain
