@@ -1,19 +1,18 @@
-use std::fs;
 use rand;
 use crate::parser::SongDesc;
 use rand::distributions::Uniform;
 use rand::distributions::Distribution;
 mod cover;
 use crate::*;
-use std::fs::ReadDir;
 
 pub fn download(todo: Vec<SongDesc>, outdir: String, filetype: char){
-    let odir = fs::read_dir(outdir.clone()).unwrap(); 
-    let mut files:Vec<String> = Vec::new();
-    for file in odir{                                     
-        files.push(remove_fex(file.unwrap().path().display().to_string()))
-    }
+    let mut files:Vec<String> = safe_read_d(&outdir);
     let mut x = 0;
+    while x < files.len(){
+        files[x] = remove_fex(files[x].clone());
+        x+=1;
+    }
+    x = 0;
     while x < todo.len(){
         let infile:String;
         let cover:String;

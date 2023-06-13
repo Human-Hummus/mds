@@ -12,8 +12,9 @@ fn safe_read_f(filepath: &String) -> String{
         Err(_) => {fatal!(format!("fatal error: unknown file \"{}\"", filepath))}
     }
 }
-fn safe_read_d(dirpath: &String) -> Vec<String>{
-    return match std::fs::read_dir(dirpath){
+
+pub fn safe_read_d(dirpath: &String) -> Vec<String>{
+    match std::fs::read_dir(dirpath){
         Ok(file) => {
                 let mut out:Vec<String> = [].to_vec();
                 for i in file{
@@ -25,7 +26,7 @@ fn safe_read_d(dirpath: &String) -> Vec<String>{
                 return out;
             },
         Err(_) => fatal!(format!("fatal error: unknown file \"{}\"", dirpath))
-    }
+    };
 }
 
 fn main() {
