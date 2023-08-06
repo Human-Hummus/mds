@@ -14,7 +14,7 @@ macro_rules! alert{
 }}
 #[macro_export]
 macro_rules! debug{
-    ($text:expr) => {println!("{}{}{}", $crate::termion::color::Fg($crate::termion::color::Blue), $text, $crate::termion::color::Fg($crate::termion::color::Reset))}
+    ($text:expr) => {if cfg!(debug_assertions){println!("{}{}{}", $crate::termion::color::Fg($crate::termion::color::Blue), $text, $crate::termion::color::Fg($crate::termion::color::Reset))}}
 }
 #[macro_export]
 macro_rules! error{

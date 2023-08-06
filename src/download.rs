@@ -5,7 +5,7 @@ use rand::distributions::Distribution;
 mod cover;
 use crate::*;
 
-pub fn download(todo: Vec<SongDesc>, outdir: String, filetype: char){
+pub fn download(todo: Vec<SongDesc>, outdir: String, filetype: FileFormat){
     let mut files:Vec<String> = safe_read_d(&outdir);
     let mut x = 0;
     while x < files.len(){
@@ -17,11 +17,11 @@ pub fn download(todo: Vec<SongDesc>, outdir: String, filetype: char){
         let infile:String;
         let cover:String;
         let title = todo[x].name.clone();
-        
-        if is_done(&title, &outdir, &files){alert!(format!("file \"{}\" is already present.", title));x+=1;continue;}
+
+        if is_done(&title, &outdir, &files){debug!(format!("file \"{}\" is already present.", title));x+=1;continue;}
 
         cover = cover::process_cover(&todo[x].cover, todo[x].is_cover_url, todo[x].is_file_url, &todo[x].infile, &title);
-        
+
         if todo[x].is_file_url{
             alert!(format!("tdx {:?}", todo[x]));
             infile = tmp_ytdlp(&todo[x].infile);
@@ -33,52 +33,51 @@ pub fn download(todo: Vec<SongDesc>, outdir: String, filetype: char){
         }
         else {infile = todo[x].infile.clone();}
 
-        let final_fex = find_file_extension(filetype);
+        let final_fex = find_file_extension(&filetype);
 
         let outfile:String = format!("{}{}", ensure_string_terminates_with_fwd_slash(&outdir), (title.clone() + &final_fex).trim().to_owned());
 
-        final_ffmpeg(&cover, &outfile, &infile, filetype);
+        final_ffmpeg(&cover, &outfile, &infile, &filetype);
         if todo[x].is_file_url{std::process::Command::new("rm").arg("-f").arg(infile).status().expect("Error");}
         if todo[x].is_cover_url && cover != "None" {std::process::Command::new("rm").arg("-f").arg(cover).status().expect("Error");}
         x+=1;
     }
-    
+
 }
 
-fn find_file_extension(ftype:char) -> String{
+fn find_file_extension(ftype:&FileFormat) -> String{
     return match ftype{
-        'f' => ".flac",
-        'o' => ".opus",
-        'm' => ".mp3",
-        'w' => ".wav",
-        'v' => ".ogg",
-        'a' => ".aac",
+        FileFormat::flac => ".flac",
+        FileFormat::opus => ".opus",
+        FileFormat::mpeg => ".mp3",
+        FileFormat::wav => ".wav",
+        FileFormat::vorbis => ".ogg",
+        FileFormat::aac => ".aac",
         _ => panic!("unknown filetype")
     }.to_string()
 }
 
-fn final_ffmpeg(cover: &String, outputfile: &String, infile: &String, ftype: char){
+fn final_ffmpeg(cover: &String, outputfile: &String, infile: &String, ftype: &FileFormat){
     let codec:String = match ftype{
-        'f' => "flac",
-        'o' => "libopus",
-        'm' => "mp3",
-        'w' => "wav",
-        'v' => "libvorbis",
-        'a' => "aac",
+        FileFormat::flac => "flac",
+        FileFormat::opus => "libopus",
+        FileFormat::mpeg => "mp3",
+        FileFormat::wav => "wav",
+        FileFormat::vorbis => "libvorbis",
+        FileFormat::aac => "aac",
         _ => panic!("unknown filetype")
     }.to_string();
     let bitrate:String = match ftype{
-        'f' => "0",
-        'o' => "192k",
-        'm' => "320k",
-        'w' => "0",
-        'v' => "224k",
-        'a' => "256k",
+        FileFormat::flac => "0",
+        FileFormat::opus => "192k",
+        FileFormat::mpeg => "320k",
+        FileFormat::wav => "0",
+        FileFormat::vorbis => "224k",
+        FileFormat::aac => "256k",
         _ => panic!("unknown filetype")
-            
+
     }.to_string();
     if cover == "None"{
-        debug!("ffmpeg1");
         match std::process::Command::new("ffmpeg")
             .arg("-i").arg(infile.trim().to_owned())
             .arg("-c:a").arg(codec)
@@ -90,7 +89,6 @@ fn final_ffmpeg(cover: &String, outputfile: &String, infile: &String, ftype: cha
             }
     }
     else{ 
-        debug!("ffmpeg2");
         match std::process::Command::new("ffmpeg")
             .arg("-i").arg(infile.trim().to_owned())
             .arg("-i").arg(cover.trim().to_owned())
@@ -112,7 +110,7 @@ pub fn gen_filename(fex: &String) -> String{
     let chars_allowed = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890-_".chars().collect::<Vec<char>>();
     let mut fname = "/tmp/".to_string();
     length-=fname.len() + fex.len();
-    
+
     while length != 0{
         length-=1;
         fname.push(chars_allowed[Uniform::from(0..chars_allowed.len()-1).sample(&mut rand::thread_rng())]);
