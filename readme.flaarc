@@ -20,6 +20,8 @@ The comment starts with a hash(\#) symbol.
 
 This one's less obvious. This is the variable that is appended to the beginning of input music files, so "yeet.mp3" will now become "/home/username/yeet.mp3". This should always be a directory. The default value is "/".
 
+This can be overridden with the -o command line option.
+
 {mark:yeet.mp3 | yeetus | cover.png}
 
 {p:

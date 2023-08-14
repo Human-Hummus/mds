@@ -3,17 +3,27 @@ use crate::*;
 
 #[derive(Debug)]
 pub struct SongDesc {
-    pub name: String,
-    pub infile: String,
-    pub is_file_url: bool,
-    pub cover: String,
-    pub is_cover_url: bool,
+    pub name:           String,
+    pub infile:         String,
+    pub is_file_url:    bool,
+    pub cover:          String,
+    pub is_cover_url:   bool,
+}
+impl SongDesc{
+    pub fn clone(&self) -> SongDesc{
+        return SongDesc{
+            name:           self.name.clone(),
+            infile:         self.infile.clone(),
+            is_file_url:    self.is_file_url,
+            cover:          self.cover.clone(),
+            is_cover_url:   self.is_cover_url
+        }
+    }
 }
 
-pub fn parse(text: &String) -> Vec<SongDesc>{
-    let mut output:Vec<SongDesc> = Vec::new();
+pub fn parse(conf: &mut Options){
     let mut lines:Vec<Vec<char>> = vec![];
-    for i in text.split("\n").collect::<Vec<&str>>(){
+    for i in conf.input_text.clone().split("\n").collect::<Vec<&str>>(){
         lines.push(i.chars().collect::<Vec<char>>())
     };
 
@@ -83,7 +93,7 @@ pub fn parse(text: &String) -> Vec<SongDesc>{
             }
         }
 
-        output.push(
+        conf.songs.push(
                 SongDesc{
                     name: title.trim().to_owned(),
                     infile: (match is_file_url {
@@ -108,7 +118,6 @@ pub fn parse(text: &String) -> Vec<SongDesc>{
                 }
             );
     }
-    return output;
 }
 
 

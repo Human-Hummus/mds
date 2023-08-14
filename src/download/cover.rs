@@ -1,3 +1,5 @@
+//this file is a mess.
+
 use crate::download::gen_filename;
 use crate::*;
 use std::fs;
