@@ -5,24 +5,40 @@ mod cover;
 use crate::*;
 
 pub fn download(conf:Options){
-    let mut files:Vec<String> = safe_read_d(&conf.output_dir);
+    let files:Vec<String> = match std::fs::read_dir(&conf.output_dir){
+        Ok(file) => {
+                let mut out:Vec<String> = [].to_vec();
+                for i in file{
+                    out.push(remove_fex({
+                        let t = match i{
+                            Ok(path) => {path.path()}
+                            Err(_) => {fatal!(format!("fatal error: error reading directory \"{}\"", conf.output_dir))}
+                        }.display().to_string().chars().collect::<Vec<char>>();
+                        let mut x = t.len()-1;
+                        while t[x] != '/'{
+                            x-=1;
+                        }
+                        x+=1;
+                        t[x..t.len()-1].iter().collect::<String>()
+                    }));
+                }
+                out
+            },
+        Err(_) => fatal!(format!("fatal error: unknown file \"{}\"", conf.output_dir))
+    };
     let mut x = 0;
     let mut total_files_already_present:f32 = 0.0;
     let mut total_songs_seen:f32 = 0.0;
     let mut errored:f32 = 0.0;
-    while x < files.len(){
-        files[x] = remove_fex(files[x].clone());
-        x+=1;
-    }
     let mut file_errors:String = String::new();
-    x = 0;
     while x < conf.songs.len() -1{
         if !(total_songs_seen < 1.0){x+=1}
         let mut song = conf.songs[x].clone();
         total_songs_seen+=1.0;
         let infile:String;
 
-        if is_done(&song.name, &conf.output_dir, &files){debug!(format!("file \"{}\" is already present.", song.name));total_files_already_present+=1.0;continue;}
+        if is_done(&song.name, &files){debug!(format!("file \"{}\" is already present.", song.name));total_files_already_present+=1.0;continue;}
+        alert!(format!("{} song \"{}\" to output directory.", match song.is_file_url{true => "Downloading and copying", false => "Copying"}, song.name));
 
         song.cover = cover::process_cover(&song.cover, song.is_cover_url, song.is_file_url, &song.infile, &song.name);
 
@@ -80,7 +96,7 @@ fn final_ffmpeg(cover: &String, outputfile: &String, infile: &String, conf: &Opt
     Some(0)
 }
 
-
+#[inline(always)]
 pub fn gen_filename(fex: &String) -> String{
     let mut length = 100;
     let chars_allowed = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890-_".chars().collect::<Vec<char>>();
@@ -94,6 +110,7 @@ pub fn gen_filename(fex: &String) -> String{
     return fname.to_owned() + fex;
 
 }
+
 fn tmp_ytdlp(url: &String) -> Option<String>{
     let fname = gen_filename(&".flac".to_owned());
     match std::process::Command::new("yt-dlp")
@@ -108,18 +125,18 @@ fn tmp_ytdlp(url: &String) -> Option<String>{
 
 }
 
-pub fn ensure_string_terminates_with_fwd_slash(string: &String) -> String{
+#[inline(always)]
+pub fn ensure_string_terminates_with_fwd_slash(string: &str) -> String{
     if string.chars().nth(string.len()-1).unwrap() != '/'{
         return string.to_owned()+"/";
     }
     return string.to_string();
 }
 
-fn is_done(title: &String, dir: &String, files:&Vec<String>) -> bool{
-    let theoretical_file_name = ensure_string_terminates_with_fwd_slash(dir) + title;
+#[inline(always)]
+fn is_done(title: &String, files:&Vec<String>) -> bool{
     for file in files {
-        let file_no_ex = file;
-        if &theoretical_file_name == file_no_ex{
+        if title.len() == file.len() && title == file{
             return true;
         }
     }
@@ -128,6 +145,7 @@ fn is_done(title: &String, dir: &String, files:&Vec<String>) -> bool{
 
 
 //remove file extension
+#[inline(always)]
 fn remove_fex(mut filename: String) -> String{
     while filename.len() > 1 && filename.pop().unwrap() != '.'{}
     return filename;

@@ -1,4 +1,5 @@
-# MDS - Music Download Script.
+#MDS - Music Download Script.
+
 This is what it says on the tin; it downloads music. It can copy music from local files, too. It's built using ffmpeg & yt-dlp.
 
  The reason I made this is because while yt-dlp can download a list of songs, and I can easily copy local files, yt-dlp can't know if a song is already downloaded or not until it sees the title. Additionally, it's hard to make yt-dlp output multiple files with custom titles. Also, cover art isn't included with yt-dlp's outputted files(usually), and it'd be nice to combine compressing local files and downloading remote files into one script. This is, by the way, a script and not much more. It's written in Rust because of course it is. I had written an earlier version of this in Python, but I've rewritten it in Rust because, well, it's fun. That and it's cooler. Also, (in my opinion) Python is a poor choice for this project. 
@@ -12,7 +13,9 @@ The comment starts with a hash(\#) symbol.
 
 <mark>\*/home/username</mark>
 
-This one's less obvious. This is the variable that is appended to the beginning of input music files, so "yeet.mp3" will now become "/home/username/yeet.mp3". This should always be a directory. The default value is "/".
+This one's less obvious. This is the variable that is appended to the beginning of input music files, so "yeet.mp3" will now become "/home/username/yeet.mp3". This should always be a directory. The default value is the path to the file's directory.
+
+This can be overridden with the -o command line option.
 
 <mark>yeet.mp3 | yeetus | cover.png</mark>
 
@@ -23,4 +26,4 @@ This one's less obvious. This is the variable that is appended to the beginning 
 
  Also, it's possible, if you supply a link and not a cover, that MDS will be able to find the cover art on its own. This is rather buggy, and currently only works with Soundcloud and Youtube, but it's pretty neat. 
 
- ANOTHER note: opus codec is really iffy, it's not a great idea to use it; Some ffmpeg issues. 
+ If you want to also parse another file, in the first file you can put an at symbol and then the file's name So, to include "blah.txt", you'd type "@blah.txt". 

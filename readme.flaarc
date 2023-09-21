@@ -18,7 +18,7 @@ The comment starts with a hash(\#) symbol.
 
 {mark: */home/username}
 
-This one's less obvious. This is the variable that is appended to the beginning of input music files, so "yeet.mp3" will now become "/home/username/yeet.mp3". This should always be a directory. The default value is "/".
+This one's less obvious. This is the variable that is appended to the beginning of input music files, so "yeet.mp3" will now become "/home/username/yeet.mp3". This should always be a directory. The default value is the path to the file's directory.
 
 This can be overridden with the -o command line option.
 
@@ -43,5 +43,6 @@ This is rather buggy, and currently only works with Soundcloud and Youtube, but 
 }
 
 {p:
-ANOTHER note: opus codec is really iffy, it's not a great idea to use it; Some ffmpeg issues.
+If you want to also parse another file, in the first file you can put an at symbol and then the file's name
+So, to include "blah.txt", you'd type "@blah.txt".
 }

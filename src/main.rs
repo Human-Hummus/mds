@@ -20,13 +20,7 @@ pub enum FileFormat{
 }
 
 
-fn safe_read_f(filepath: &String) -> String{
-    return match std::fs::read_to_string(filepath){
-        Ok(file) => {file},
-        Err(_) => {fatal!(format!("fatal error: unknown file \"{}\"", filepath))}
-    }
-}
-
+#[inline(always)]
 pub fn safe_read_d(dirpath: &String) -> Vec<String>{
     match std::fs::read_dir(dirpath){
         Ok(file) => {
@@ -47,7 +41,7 @@ pub fn safe_read_d(dirpath: &String) -> Vec<String>{
 pub struct Options {
     bitrate:    Option<String>,
     format:     FileFormat,
-    input_text: String,
+    input_file: String,
     output_dir: String,
     songs:      Vec<SongDesc>
 }
@@ -57,7 +51,7 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let mut conf:Options = Options{
         format:     DEFAULT_FILE_FORMAT,
-        input_text: String::new(),
+        input_file: String::new(),
         output_dir: String::new(),
         bitrate:    None,
         songs:      Vec::new()
@@ -78,7 +72,7 @@ fn main() {
             }
 
             //read the file.
-            conf.input_text+=&(safe_read_f(&args[x]) + "\n");
+            conf.input_file = args[x].clone()
         },
         "-o" | "--output" => {
             x+=1;
@@ -86,7 +80,7 @@ fn main() {
             if x == args.len(){fatal!("fatal error: output directory arguemnt incomplete.")}
 
             safe_read_d(&args[x]); //check that the dir exists
-            conf.output_dir = args[x].to_string();
+            conf.output_dir = download::ensure_string_terminates_with_fwd_slash(&args[x]);
         },
         "--format" | "-f" => {
             x+=1;
@@ -104,10 +98,10 @@ fn main() {
         _ => warn!(format!("warning: unknown argument: \"{}\"", args[x]))
         
     };x+=1}
-    if conf.input_text.len() < 1{fatal!("fatal error: no input file(s) specified")}
+    if conf.input_file.len() < 1{fatal!("fatal error: no input file specified")}
     if conf.output_dir.len() < 1{fatal!("fatal error: no output directory specified")}
 
-    parser::parse(&mut conf);
+    conf.songs = parser::parse_file(&conf.input_file.to_string());
     download::download(conf);
 }
 
