@@ -96,6 +96,9 @@ pub fn parse_file(path:&String) -> Vec<SongDesc>{
                         song.is_cover_url = true;
                         song.cover = scc[1..scc.len()-1].iter().cloned().collect::<String>();
                     }
+                    else {
+                        song.cover = format!("{}{}", current_home, song.cover)
+                    }
                 }
                 else{song.cover = String::from("None")}
                 toret.push(song);

@@ -65,8 +65,8 @@ pub fn download(conf:Options){
         if song.is_cover_url && song.cover != "None" {delete::delete_file(&song.cover).unwrap();}
     }
     alert!(format!("\nTotal files listed: {:.0}", total_songs_seen));
-    alert!(format!("Total files already downloaded: {:.0}({:.0}%).", total_files_already_present, 100.0*(total_files_already_present/total_songs_seen)));
-    alert!(format!("Total files failed: {:.0}({:.0}%)", errored, 100.0*(errored/total_songs_seen)));
+    alert!(format!("Total files already present: {:.0}({:.1}%).", total_files_already_present, 100.0*(total_files_already_present/total_songs_seen)));
+    alert!(format!("Total files failed: {:.0}({:.0}%)", errored, 100.0*(errored/total_files_already_present)));
     if file_errors != String::new(){
         error!(format!("List of files failed:{file_errors}"))
     }
