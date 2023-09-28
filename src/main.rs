@@ -47,6 +47,10 @@ pub struct Options {
 }
 
 fn main() {
+    //0: only errors
+    //1: only errors and warnings
+    //2: all.
+    let mut verbosity:u8 = 2;
     is_sane();
     let args: Vec<String> = env::args().collect();
     let mut conf:Options = Options{
@@ -95,6 +99,9 @@ fn main() {
                 _ => fatal!("fatal error: invalid format")
             }
         },
+        "--verbose"|"-v"    => verbosity = 2,
+        "--quiet" | "-q"    => verbosity = 1,
+        "--silent" | "-Q"   => verbosity = 0,
         _ => warn!(format!("warning: unknown argument: \"{}\"", args[x]))
         
     };x+=1}
@@ -102,7 +109,7 @@ fn main() {
     if conf.output_dir.len() < 1{fatal!("fatal error: no output directory specified")}
 
     conf.songs = parser::parse_file(&conf.input_file.to_string());
-    download::download(conf);
+    download::download(conf, verbosity);
 }
 
 

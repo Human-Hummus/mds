@@ -6,14 +6,14 @@ use std::fs;
 use std::process::Command;
 
 //the output is a filename OR "None".
-pub fn process_cover(og_cover: &String, is_url: bool, is_infile_link: bool, infile: &String, title: &String) -> String{
+pub fn process_cover(og_cover: &String, is_url: bool, is_infile_link: bool, infile: &String, title: &String, verbosity:u8) -> String{
     if is_url{
         let new_cover = wget_cover(og_cover);
         if new_cover == "ERR"{
             debug!(format!("Alert: unable to download cover for \"{}\"", title));
             return String::from("None");
         }
-        alert!(format!("Successfully downloaded cover art for \"{}\" automatically!",title));
+        if verbosity > 1{alert!(format!("Successfully downloaded cover art for \"{}\" automatically!",title))};
         return new_cover;
     }
     else if og_cover == "None" && is_infile_link{

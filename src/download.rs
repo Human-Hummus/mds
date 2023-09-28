@@ -4,7 +4,7 @@ use rand::distributions::{Uniform, Distribution};
 mod cover;
 use crate::*;
 
-pub fn download(conf:Options){
+pub fn download(conf:Options, verbosity:u8){
     let files:Vec<String> = match std::fs::read_dir(&conf.output_dir){
         Ok(file) => {
                 let mut out:Vec<String> = [].to_vec();
@@ -38,9 +38,9 @@ pub fn download(conf:Options){
         let infile:String;
 
         if is_done(&song.name, &files){debug!(format!("file \"{}\" is already present.", song.name));total_files_already_present+=1.0;continue;}
-        alert!(format!("{} song \"{}\" to output directory.", match song.is_file_url{true => "Downloading and copying", false => "Copying"}, song.name));
+        if verbosity > 1{alert!(format!("{} song \"{}\" to output directory.", match song.is_file_url{true => "Downloading and copying", false => "Copying"}, song.name))};
 
-        song.cover = cover::process_cover(&song.cover, song.is_cover_url, song.is_file_url, &song.infile, &song.name);
+        song.cover = cover::process_cover(&song.cover, song.is_cover_url, song.is_file_url, &song.infile, &song.name, verbosity);
 
         if song.is_file_url{
             debug!(format!("tdx {:?}", song));
@@ -64,9 +64,11 @@ pub fn download(conf:Options){
         if song.is_file_url{delete::delete_file(&infile).unwrap();}
         if song.is_cover_url && song.cover != "None" {delete::delete_file(&song.cover).unwrap();}
     }
-    alert!(format!("\nTotal files listed: {:.0}", total_songs_seen));
-    alert!(format!("Total files already present: {:.0}({:.1}%).", total_files_already_present, 100.0*(total_files_already_present/total_songs_seen)));
-    alert!(format!("Total files failed: {:.0}({:.0}%)", errored, 100.0*(errored/total_files_already_present)));
+    if verbosity > 1{
+        alert!(format!("\nTotal files listed: {:.0}", total_songs_seen));
+        alert!(format!("Total files already present: {:.0}({:.1}%).", total_files_already_present, 100.0*(total_files_already_present/total_songs_seen)));
+        alert!(format!("Total files failed: {:.0}({:.0}%)", errored, 100.0*(errored/total_files_already_present)));
+    }
     if file_errors != String::new(){
         error!(format!("List of files failed:{file_errors}"))
     }

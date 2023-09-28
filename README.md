@@ -1,4 +1,4 @@
-#MDS - Music Download Script.
+# MDS - Music Download Script.
 
 This is what it says on the tin; it downloads music. It can copy music from local files, too. It's built using ffmpeg & yt-dlp.
 
@@ -27,3 +27,18 @@ This can be overridden with the -o command line option.
  Also, it's possible, if you supply a link and not a cover, that MDS will be able to find the cover art on its own. This is rather buggy, and currently only works with Soundcloud and Youtube, but it's pretty neat. 
 
  If you want to also parse another file, in the first file you can put an at symbol and then the file's name So, to include "blah.txt", you'd type "@blah.txt". 
+--
+
+**FLAGS:**
+
+|Flag | Short | purpose|
+|---|---|---|
+|--format [format] | -f [format]| Set the output files to the format "[format]"|
+|--help | -h | Print help info|
+|--output [dir]| -o [dir]| Set the output directory to "[dir]"|
+|--input [file]|-i [file]| Set the input file to"[file]"|
+|--quiet |-q | Supress logs consisting of anything other than errors or warnings.|
+|--silent|-Q | Supress logs consisting of anything other than errors.|
+|--verbose|-v| Don't supress output(default).|
+||
+
