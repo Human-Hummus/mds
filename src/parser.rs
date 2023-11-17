@@ -1,5 +1,5 @@
-use crate::download::ensure_string_terminates_with_fwd_slash;
 use crate::*;
+use std::{fs::read_to_string, path::Path};
 
 #[derive(Debug)]
 pub struct SongDesc {
@@ -22,41 +22,29 @@ impl SongDesc{
 }
 fn lines_to(chars: &Vec<char>, pos: usize) -> usize{
     if pos >= chars.len(){return usize::MAX}
-    let mut x = 0;
-    let mut lines = 0;
+    let [mut x, mut lines] = [0,0];
     while x < pos{
         if chars[x] == '\n'{
             lines+=1;
         }
         x+=1;
     }
-    return lines;
+    lines
 }
 
+
 pub fn parse_file(path:&String) -> Vec<SongDesc>{
-    let text = match std::fs::read_to_string(path) {
-        Ok(data) => data,
-        Err(_) => fatal!(format!("Fatal Error: unable to read file \"{}\"", path))
-    }.chars().collect::<Vec<char>>();
+    let text = read_to_string(path).unwrap_or_else(|_| fatal!(format!("Fatal Error: unable to read file \"{}\"", path)))
+        .chars().collect::<Vec<char>>();
 
     let mut toret:Vec<SongDesc> = Vec::new();
     let mut x = 0;
-    let mut current_home = get_containing_dir(path.clone());
+    let mut current_home = Path::new(path).parent().unwrap().to_string_lossy().into_owned() + "/";
     while x < text.len(){
         match text[x] {
+            '\n' => {x+=1},
             '#' => {
-                while x < text.len() && text[x] != '\n'{
-                    x+=1;
-                }
-            },
-            '*' => {
-                current_home.clear();
-                x+=1;
-                while x < text.len() && text[x] != '\n'{
-                    current_home.push(text[x]);
-                    x+=1;
-                }
-                current_home = ensure_string_terminates_with_fwd_slash(current_home.trim());
+                while x < text.len() && text[x] != '\n'{x+=1}
             },
             '/' | 'a'..='z' | 'A'..='Z' | '1'..='9' | '-' | '.' | ',' | '!' => {
                 let mut song = SongDesc{
@@ -69,32 +57,38 @@ pub fn parse_file(path:&String) -> Vec<SongDesc>{
 
                 if text[x] == '!'{song.is_file_url = true;x+=1}
 
-                while x < text.len() && text[x] != '|'{
+                while text[x] != '|'{
                     song.infile.push(text[x]);
                     x+=1;
                     if x == text.len() || text[x] == '\n'{fatal!(format!("In file \"{}\" on line \"{}\" there is an incomplete or invalid command", path, lines_to(&text, x)))}
                 }
                 x+=1;
                 song.infile = song.infile.trim().to_owned();
-                if song.is_file_url == false{song.infile = current_home.clone() + &song.infile.clone()}
+                
+                if !song.is_file_url {song.infile = current_home.clone() + &song.infile}
                 if song.infile.len() < 1 {fatal!(format!("In file \"{}\" on line \"{}\" there is an incomplete or invalid command", path, lines_to(&text, x)))}
-                while x < text.len() && text[x] != '|' && text[x] != '\n'{
+
+                while x < text.len(){
                     song.name.push(text[x]);
                     x+=1;
-                }if text[x] == '|'{x+=1}
+                    if text[x] == '\n'{break}
+                    if text[x] == '|'{x+=1;break}
+                }
+
                 song.name = song.name.trim().to_owned();
                 if song.name.len() < 1 {fatal!(format!("In file \"{}\" on line \"{}\" there is an incomplete or invalid command", path, lines_to(&text, x)))}
 
                 while x < text.len() && text[x] != '\n'{
                     song.cover.push(text[x]);
-                    x+=1;
+                    x+=1
                 }
+
                 song.cover = song.cover.trim().to_owned();
+                
                 if song.cover.len() > 0{
-                    let scc = song.cover.chars().collect::<Vec<char>>();
-                    if scc[0] == '!'{
+                    if song.cover.chars().nth(0).unwrap() == '!'{
                         song.is_cover_url = true;
-                        song.cover = scc[1..scc.len()-1].iter().cloned().collect::<String>();
+                        song.cover = song.cover.chars().collect::<Vec<char>>()[1..song.cover.len()-1].iter().cloned().collect::<String>()
                     }
                     else {
                         song.cover = format!("{}{}", current_home, song.cover)
@@ -102,6 +96,20 @@ pub fn parse_file(path:&String) -> Vec<SongDesc>{
                 }
                 else{song.cover = String::from("None")}
                 toret.push(song);
+            },
+            '*' => {
+                x+=1;
+                current_home = String::new();
+                while x < text.len() && text[x] != '\n'{
+                    current_home.push(text[x]);
+                    x+=1;
+                }
+                let mut current_home_tmp = current_home.trim().chars().collect::<Vec<char>>();
+                if current_home_tmp[current_home_tmp.len()-1] != '/'{
+                    current_home_tmp.push('/');
+                }
+                current_home = current_home_tmp.into_iter().collect();
+
             },
             '@' => {
                 x+=1;
@@ -111,36 +119,16 @@ pub fn parse_file(path:&String) -> Vec<SongDesc>{
                     ftga.push(text[x]);
                     x+=1;
                 }
-                file_to_go += &ensure_that_a_string_does_not_begin_with_a_forward_slash(ftga.trim());
+                ftga = ftga.trim().to_owned();
+                if ftga.chars().nth(0).unwrap() == '/'{
+                    ftga = ftga.chars().collect::<Vec<char>>()[1..ftga.len()-1].into_iter().collect()
+                }
+                file_to_go += &ftga;
                 toret.append(&mut parse_file(&file_to_go));
             },
             _ => {x+=1}
 
-
         };
     }
     toret
-
-}
-
-
-#[inline(always)]
-pub fn get_containing_dir(filepath: String) -> String{
-    let mut chrs = filepath.chars().collect::<Vec<char>>();
-    while chrs[chrs.len()-1] != '/'{chrs.pop();}
-    let mut out = String::new();
-    for ch in chrs{out.push(ch)}
-    out
-}
-
-
-#[inline(always)]
-fn ensure_that_a_string_does_not_begin_with_a_forward_slash(the_string_to_be_modified: &str) -> String{
-    if the_string_to_be_modified.len() < 1{
-        return String::from("");
-    }
-    if the_string_to_be_modified.chars().nth(0).unwrap() == '/'{
-        return the_string_to_be_modified[1..the_string_to_be_modified.len()-1].to_owned();
-    }
-    return the_string_to_be_modified.to_string();
 }

@@ -9,36 +9,25 @@ pub fn download(conf:Options, verbosity:u8){
         Ok(file) => {
                 let mut out:Vec<String> = [].to_vec();
                 for i in file{
-                    out.push(remove_fex({
-                        let t = match i{
-                            Ok(path) => {path.path()}
-                            Err(_) => {fatal!(format!("fatal error: error reading directory \"{}\"", conf.output_dir))}
-                        }.display().to_string().chars().collect::<Vec<char>>();
-                        let mut x = t.len()-1;
-                        while t[x] != '/'{
-                            x-=1;
-                        }
-                        x+=1;
-                        t[x..t.len()-1].iter().collect::<String>()
-                    }));
-                }
+                    out.push(i.unwrap_or_else(|_| fatal!(format!("Error Reading dir \"{}\"", conf.output_dir)))
+                             .path().file_stem().expect("failed on directory").to_string_lossy().into_owned())
+                } 
+                out.sort();
                 out
             },
         Err(_) => fatal!(format!("fatal error: unknown file \"{}\"", conf.output_dir))
     };
-    let mut x = 0;
-    let mut total_files_already_present:f32 = 0.0;
-    let mut total_songs_seen:f32 = 0.0;
-    let mut errored:f32 = 0.0;
-    let mut file_errors:String = String::new();
+    let (mut total_files_already_present, mut total_songs_seen, mut errored, mut x, mut file_errors) = (0.0,0.0,0.0, 0, String::new());
     while x < conf.songs.len() -1{
-        if !(total_songs_seen < 1.0){x+=1}
         let mut song = conf.songs[x].clone();
         total_songs_seen+=1.0;
         let infile:String;
 
-        if is_done(&song.name, &files){debug!(format!("file \"{}\" is already present.", song.name));total_files_already_present+=1.0;continue;}
-        if verbosity > 1{alert!(format!("{} song \"{}\" to output directory.", match song.is_file_url{true => "Downloading and copying", false => "Copying"}, song.name))};
+        if is_done(&song.name, &files){debug!(format!("file \"{}\" is already present.", song.name));total_files_already_present+=1.0;x+=1;continue;}
+        if verbosity > 1{alert!(format!("{} song \"{}\" to output directory.", 
+                                        match song.is_file_url{
+                                            true => "Downloading and copying", 
+                                            false => "Copying"}, song.name))};
 
         song.cover = cover::process_cover(&song.cover, song.is_cover_url, song.is_file_url, &song.infile, &song.name, verbosity);
 
@@ -48,6 +37,7 @@ pub fn download(conf:Options, verbosity:u8){
                 None => {
                     errored+=1.0; file_errors+=&format!("\n\t* \"{}\"", song.name);
                     error!(format!("Error while downloading \"{}\".", song.name));
+                    x+=1;
                     continue
                 },
                 Some(val) => val
@@ -55,14 +45,16 @@ pub fn download(conf:Options, verbosity:u8){
         }
         else {infile = song.infile.clone();}
 
-        let outfile:String = format!("{}{}{}", ensure_string_terminates_with_fwd_slash(&conf.output_dir), song.name, conf.file_extension());
+        let outfile:String = format!("{}{}{}", &match &conf.output_dir.chars().nth(conf.output_dir.len()-1).unwrap() {'/' => conf.output_dir.clone(), _ => conf.output_dir.clone() + "/"}, song.name, conf.file_extension());
 
         match final_ffmpeg(&song.cover, &outfile, &infile, &conf){Some(_) => (),
             None => {
                 error!(format!("Non-fatal error: failed to convert \"{}\"", song.name));
+                x+=1;
                 continue}};
         if song.is_file_url{delete::delete_file(&infile).unwrap();}
         if song.is_cover_url && song.cover != "None" {delete::delete_file(&song.cover).unwrap();}
+        x+=1;
     }
     if verbosity > 1{
         alert!(format!("\nTotal files listed: {:.0}", total_songs_seen));
@@ -128,27 +120,10 @@ fn tmp_ytdlp(url: &String) -> Option<String>{
 }
 
 #[inline(always)]
-pub fn ensure_string_terminates_with_fwd_slash(string: &str) -> String{
-    if string.chars().nth(string.len()-1).unwrap() != '/'{
-        return string.to_owned()+"/";
-    }
-    return string.to_string();
-}
-
-#[inline(always)]
 fn is_done(title: &String, files:&Vec<String>) -> bool{
-    for file in files {
-        if title.len() == file.len() && title == file{
-            return true;
-        }
+    match files.binary_search(title){
+        Ok(_) => true,
+        _ => false
     }
-    return false;
 }
 
-
-//remove file extension
-#[inline(always)]
-fn remove_fex(mut filename: String) -> String{
-    while filename.len() > 1 && filename.pop().unwrap() != '.'{}
-    return filename;
-}

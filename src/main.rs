@@ -20,24 +20,6 @@ pub enum FileFormat{
 }
 
 
-#[inline(always)]
-pub fn safe_read_d(dirpath: &String) -> Vec<String>{
-    match std::fs::read_dir(dirpath){
-        Ok(file) => {
-                let mut out:Vec<String> = [].to_vec();
-                for i in file{
-                    out.push(match i{
-                        Ok(path) => {path.path()}
-                        Err(_) => {fatal!(format!("fatal error: error reading directory \"{}\"", dirpath))}
-                    }.display().to_string());
-                }
-                return out;
-            },
-        Err(_) => fatal!(format!("fatal error: unknown file \"{}\"", dirpath))
-    };
-}
-
-
 pub struct Options {
     bitrate:    Option<String>,
     format:     FileFormat,
@@ -83,8 +65,8 @@ fn main() {
             //check for a complete argument
             if x == args.len(){fatal!("fatal error: output directory arguemnt incomplete.")}
 
-            safe_read_d(&args[x]); //check that the dir exists
-            conf.output_dir = download::ensure_string_terminates_with_fwd_slash(&args[x]);
+            if std::path::Path::new(&args[x]).exists() == false{fatal!("Fatal error: output dir does not exist.")}
+            conf.output_dir = match &args[x].chars().nth(args[x].len()-1).unwrap(){'/' => args[x].clone(), _ => args[x].clone() + "/"};
         },
         "--format" | "-f" => {
             x+=1;
@@ -118,10 +100,7 @@ use which::which;
 fn is_sane(){
     let programs_needed = ["yt-dlp", "ffmpeg"];
     for i in programs_needed{
-        match which(i){
-            Ok(_) =>    (),
-            Err(_) =>   fatal!(format!("Fatal error: {i} cannot be found"))
-        }
+        if which(i).is_err() {fatal!(format!("Fatal error: {i} cannot be found"))}
     }
 }
 
