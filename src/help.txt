@@ -6,6 +6,12 @@ Arguments:
 	-o/--output [x]			Sets file [x] as the output directory. This directory must already exist. There can't be multiple output directories.
 	-f/--format [x]			Sets format [x] as the output format.
 	-h/--help			Print this text and exit.
+	--delete-not-present		Delete files in the directory that aren't listed in the input file(s)
+	--do-not-warn			Supress prompt from above.
+	-v/--verbose			Print everything, Default.
+	-q/--quiet			Don't print anything other than errors and warnings
+	-Q/--silent			Don't print anything other than errors (also supresses prompt of --delete-not-present).
+
 
 
 Possible formats:

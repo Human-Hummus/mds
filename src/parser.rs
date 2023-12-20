@@ -2,6 +2,7 @@ use crate::*;
 use std::{fs::read_to_string, path::Path};
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub struct SongDesc {
     pub name:           String,
     pub infile:         String,
@@ -19,6 +20,16 @@ impl SongDesc{
             is_cover_url:   self.is_cover_url
         }
     }
+    pub fn Clone(&self) -> SongDesc{
+        return SongDesc{
+            name:           self.name.clone(),
+            infile:         self.infile.clone(),
+            is_file_url:    self.is_file_url,
+            cover:          self.cover.clone(),
+            is_cover_url:   self.is_cover_url
+        }
+    }
+
 }
 fn lines_to(chars: &Vec<char>, pos: usize) -> usize{
     if pos >= chars.len(){return usize::MAX}

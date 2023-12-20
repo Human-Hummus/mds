@@ -18,7 +18,7 @@ pub fn download(conf:Options, verbosity:u8){
         Err(_) => fatal!(format!("fatal error: unknown file \"{}\"", conf.output_dir))
     };
     let (mut total_files_already_present, mut total_songs_seen, mut errored, mut x, mut file_errors) = (0.0,0.0,0.0, 0, String::new());
-    while x < conf.songs.len() -1{
+    while x < conf.songs.len(){
         let mut song = conf.songs[x].clone();
         total_songs_seen+=1.0;
         let infile:String;
