@@ -111,9 +111,7 @@ fn main() {
     debug!(format!("full parser output: {:?}\n\n\n", conf.songs));
     download::download(match conf.clean_dir{true=>conf.clone(),false=>conf.clone()}, verbosity);
     if conf.clean_dir{
-        if print_warning && Question::new("Are you sure you want to remove unlisted files?").confirm() == Answer::NO{
-            fatal!("Fatal Error: Music downloaded, but no files were deleted");
-        }
+
         clean_directory(print_warning, conf);
     }
 }
@@ -121,23 +119,29 @@ fn main() {
 
 fn clean_directory(warning:bool,conf:Options){
     let mut files_deleted = 0;
+    let mut initial_warning = warning;
     let files:Vec<(String,String)> = match std::fs::read_dir(&conf.output_dir){
         Ok(file) => {
                 let mut out:Vec<(String,String)> = [].to_vec();
                 for i in file{
                     out.push(((&i.as_ref().unwrap_or_else(|_| {fatal!(format!("Error Reading dir \"{}\"", conf.output_dir.clone()))})
-                             .path().file_stem().expect("failed on directory").to_string_lossy().into_owned()).clone(),conf.output_dir.clone()+&i.unwrap().path().file_stem().unwrap().to_string_lossy()))
+                             .path().file_stem().expect("failed on directory").to_string_lossy().into_owned()).clone(),i.expect("").path().into_os_string().into_string().unwrap()))
                 } 
                 out
             },
         Err(_) => fatal!(format!("fatal error: unknown file \"{}\"", conf.output_dir))
     };
+
     'bigloop: for file in files{
         for song in &conf.songs{
             if song.name == file.0{continue 'bigloop;}
         }
         if warning{
-            if Question::new(format!("\"{}\" is not listed in the input file, delete it?",file.0).as_str()).confirm() == Answer::NO{fatal!("fatal: file deletion aborted, {files_deleted} files deleted.")}
+            if initial_warning && Question::new("Are you sure you want to remove unlisted files?").confirm() == Answer::NO{
+                fatal!("Fatal Error: Music downloaded, but no files were deleted");
+            }
+            initial_warning = false;
+            if Question::new(format!("\"{}\"({}) is not listed in the input file, delete it?",file.0, file.1).as_str()).confirm() == Answer::NO{fatal!("fatal: file deletion aborted, {files_deleted} files deleted.")}
         }
         match std::fs::remove_file(&file.1){
             Ok(_) => {alert!(format!("Deleted file \"{}\".",file.1));files_deleted+=1},
