@@ -1,7 +1,9 @@
 use crate::parser::*;
+use crate::search::*;
 use std::env;
 pub mod download;
 pub mod parser;
+pub mod search;
 extern crate question;
 extern crate termion;
 use question::Answer;
@@ -47,6 +49,9 @@ fn main() {
     //1: only errors and warnings
     //2: all.
     let mut verbosity: u8 = 2;
+    let mut searching = false; // is this a search? If so, we don't need an output file.
+    let mut search_query = String::new();
+
     is_sane();
     let args: Vec<String> = env::args().collect();
     let mut conf: Options = Options {
@@ -92,6 +97,15 @@ fn main() {
                     _ => args[x].clone() + "/",
                 };
             }
+            "--search" | "-s" => {
+                x+=1;
+                if x == args.len(){
+                    fatal!("Fatal error: no search term provided.");
+                }
+                searching = true;
+                search_query = args[x].to_lowercase();
+                
+            }
             "--format" | "-f" => {
                 x += 1;
                 if x == args.len() {
@@ -119,12 +133,16 @@ fn main() {
     if conf.input_file.len() < 1 {
         fatal!("fatal error: no input file specified")
     }
-    if conf.output_dir.len() < 1 {
+    if conf.output_dir.len() < 1 && !searching{
         fatal!("fatal error: no output directory specified")
     }
 
     conf.songs = parser::parse_file(&conf.input_file.to_string());
     debug!(format!("full parser output: {:?}\n\n\n", conf.songs));
+    if searching{
+        search_files(conf.songs, search_query);
+        std::process::exit(0)
+    }
     download::download(
         match conf.clean_dir {
             true => conf.clone(),
