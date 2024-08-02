@@ -229,7 +229,7 @@ fn clean_directory(warning: bool, conf: Options) {
 use which::which;
 
 fn is_sane() {
-    let programs_needed = ["yt-dlp", "ffmpeg"];
+    let programs_needed = ["yt-dlp", "ffmpeg", "wget"];
     for i in programs_needed {
         if which(i).is_err() {
             fatal!(format!("Fatal error: {i} cannot be found"))

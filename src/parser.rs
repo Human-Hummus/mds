@@ -132,7 +132,7 @@ pub fn parse_file(path: &String) -> Vec<SongDesc> {
                     if song.cover.chars().nth(0).unwrap() == '!' {
                         song.is_cover_url = true;
                         song.cover = song.cover.chars().collect::<Vec<char>>()
-                            [1..song.cover.len() - 1]
+                            [1..song.cover.len()]
                             .iter()
                             .cloned()
                             .collect::<String>()

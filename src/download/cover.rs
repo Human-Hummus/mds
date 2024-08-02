@@ -16,6 +16,7 @@ pub fn process_cover(
 ) -> String {
     if is_url {
         let new_cover = wget_cover(og_cover);
+        debug!(og_cover);
         if new_cover == "ERR" {
             debug!(format!("Alert: unable to download cover for \"{}\"", title));
             return String::from("None");
@@ -39,6 +40,9 @@ fn download_cover_art(infile: &String, title: &String) -> String {
         || infile.contains("https://youtube.com")
         || infile.contains("https:/youtu.be")
     {
+        if infile.contains("&"){
+            warn!(format!("Warning: song \"{title}\" has an input URL that contains additional information (detected by an ampersand). Consider removing this information as it may impair automatic thumbnail downloading."))
+        }
         return youtube(infile, title);
     }
     if infile.contains("https://soundcloud.com") {
