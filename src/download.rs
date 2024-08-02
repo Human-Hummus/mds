@@ -1,6 +1,8 @@
 use delete;
 use rand;
 use rand::distributions::{Distribution, Uniform};
+extern crate log;
+use log::{warn, info, trace, error};
 mod cover;
 use crate::*;
 
@@ -11,7 +13,7 @@ pub fn download(conf: Options, verbosity: u8) {
             for i in file {
                 out.push(
                     i.unwrap_or_else(|_| {
-                        fatal!(format!("Error Reading dir \"{}\"", conf.output_dir))
+                        panic!("Error Reading dir \"{}\"", conf.output_dir)
                     })
                     .path()
                     .file_stem()
@@ -23,7 +25,7 @@ pub fn download(conf: Options, verbosity: u8) {
             out.sort();
             out
         }
-        Err(_) => fatal!(format!("fatal error: unknown file \"{}\"", conf.output_dir)),
+        Err(_) => panic!("fatal error: unknown file \"{}\"", conf.output_dir),
     };
     let (
         mut total_files_already_present,
@@ -38,20 +40,20 @@ pub fn download(conf: Options, verbosity: u8) {
         let infile: String;
 
         if is_done(&song.name, &files) {
-            debug!(format!("file \"{}\" is already present.", song.name));
+            trace!("file \"{}\" is already present.", song.name);
             total_files_already_present += 1.0;
             x += 1;
             continue;
         }
         if verbosity > 1 {
-            alert!(format!(
+            info!(
                 "{} song \"{}\" to output directory.",
                 match song.is_file_url {
                     true => "Downloading and copying",
                     false => "Copying",
                 },
                 song.name
-            ))
+            )
         };
 
         song.cover = cover::process_cover(
@@ -64,12 +66,12 @@ pub fn download(conf: Options, verbosity: u8) {
         );
 
         if song.is_file_url {
-            debug!(format!("tdx {:?}", song));
+            trace!("tdx {:?}", song);
             infile = match tmp_ytdlp(&song.infile) {
                 None => {
                     errored += 1.0;
                     file_errors += &format!("\n\t* \"{}\"", song.name);
-                    error!(format!("Error while downloading \"{}\".", song.name));
+                    error!("Error while downloading \"{}\".", song.name);
                     x += 1;
                     continue;
                 }
@@ -97,10 +99,10 @@ pub fn download(conf: Options, verbosity: u8) {
         match final_ffmpeg(&song.cover, &outfile, &infile, &conf) {
             Some(_) => (),
             None => {
-                error!(format!(
+                error!(
                     "Non-fatal error: failed to convert \"{}\"",
                     song.name
-                ));
+                );
                 x += 1;
                 continue;
             }
@@ -114,20 +116,20 @@ pub fn download(conf: Options, verbosity: u8) {
         x += 1;
     }
     if verbosity > 1 {
-        alert!(format!("\nTotal files listed: {:.0}", total_songs_seen));
-        alert!(format!(
+        info!("Total files listed: {:.0}", total_songs_seen);
+        info!(
             "Total files already present: {:.0}({:.1}%).",
             total_files_already_present,
             100.0 * (total_files_already_present / total_songs_seen)
-        ));
-        alert!(format!(
+        );
+        info!(
             "Total files failed: {:.0}({:.0}%)",
             errored,
             100.0 * (errored / total_files_already_present)
-        ));
+        );
     }
     if file_errors != String::new() {
-        error!(format!("List of files failed:{file_errors}"))
+        error!("List of files failed:{file_errors}")
     }
 }
 

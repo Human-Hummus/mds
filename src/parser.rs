@@ -1,5 +1,8 @@
 use crate::*;
 use std::{fs::read_to_string, path::Path};
+extern crate log;
+use log::{warn, info, trace, error};
+
 
 #[derive(Debug, Clone)]
 pub struct SongDesc {
@@ -45,7 +48,7 @@ fn lines_to(chars: &Vec<char>, pos: usize) -> usize {
 
 pub fn parse_file(path: &String) -> Vec<SongDesc> {
     let text = read_to_string(path)
-        .unwrap_or_else(|_| fatal!(format!("Fatal Error: unable to read file \"{}\"", path)))
+        .unwrap_or_else(|_| panic!("Fatal Error: unable to read file \"{}\"", path))
         .chars()
         .collect::<Vec<char>>();
 
@@ -83,7 +86,7 @@ pub fn parse_file(path: &String) -> Vec<SongDesc> {
                     song.infile.push(text[x]);
                     x += 1;
                     if x == text.len() || text[x] == '\n' {
-                        fatal!(format!("In file \"{}\" on line \"{}\" there is an incomplete or invalid command", path, lines_to(&text, x)))
+                        panic!("In file \"{}\" on line \"{}\" there is an incomplete or invalid command", path, lines_to(&text, x))
                     }
                 }
                 x += 1;
@@ -93,11 +96,11 @@ pub fn parse_file(path: &String) -> Vec<SongDesc> {
                     song.infile = current_home.clone() + &song.infile
                 }
                 if song.infile.len() < 1 {
-                    fatal!(format!(
+                    panic!(
                         "In file \"{}\" on line \"{}\" there is an incomplete or invalid command",
                         path,
                         lines_to(&text, x)
-                    ))
+                    )
                 }
 
                 while x < text.len() {
@@ -114,11 +117,11 @@ pub fn parse_file(path: &String) -> Vec<SongDesc> {
 
                 song.name = song.name.trim().to_owned();
                 if song.name.len() < 1 {
-                    fatal!(format!(
+                    panic!(
                         "In file \"{}\" on line \"{}\" there is an incomplete or invalid command",
                         path,
                         lines_to(&text, x)
-                    ))
+                    )
                 }
 
                 while x < text.len() && text[x] != '\n' {

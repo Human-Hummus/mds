@@ -5,11 +5,11 @@ pub mod download;
 pub mod parser;
 pub mod search;
 extern crate question;
+extern crate log;
+use log::{warn, info, trace, error};
 extern crate termion;
 use question::Answer;
 use question::Question;
-#[macro_use]
-pub mod output;
 
 //------------- DEFAULTS -------------
 const DEFAULT_FILE_FORMAT: FileFormat = FileFormat::Flac;
@@ -45,6 +45,7 @@ pub struct Options {
 }
 
 fn main() {
+    colog::init();
     //0: only errors
     //1: only errors and warnings
     //2: all.
@@ -76,7 +77,7 @@ fn main() {
 
                 //check that the argument is complete.
                 if x == args.len() {
-                    fatal!("fatal error: incomplete input argument.");
+                    panic!("fatal error: incomplete input argument.");
                 }
 
                 //read the file.
@@ -86,11 +87,11 @@ fn main() {
                 x += 1;
                 //check for a complete argument
                 if x == args.len() {
-                    fatal!("fatal error: output directory arguemnt incomplete.")
+                    panic!("fatal error: output directory arguemnt incomplete.")
                 }
 
                 if std::path::Path::new(&args[x]).exists() == false {
-                    fatal!("Fatal error: output dir does not exist.")
+                    panic!("Fatal error: output dir does not exist.")
                 }
                 conf.output_dir = match &args[x].chars().nth(args[x].len() - 1).unwrap() {
                     '/' => args[x].clone(),
@@ -100,7 +101,7 @@ fn main() {
             "--search" | "-s" => {
                 x+=1;
                 if x == args.len(){
-                    fatal!("Fatal error: no search term provided.");
+                    panic!("Fatal error: no search term provided.");
                 }
                 searching = true;
                 search_query = args[x].to_lowercase();
@@ -109,7 +110,7 @@ fn main() {
             "--format" | "-f" => {
                 x += 1;
                 if x == args.len() {
-                    fatal!("fatal error: format arguemnt incomplete.")
+                    panic!("fatal error: format arguemnt incomplete.")
                 }
                 conf.format = match args[x].to_lowercase().trim() {
                     "f" | "flac" => FileFormat::Flac,
@@ -118,7 +119,7 @@ fn main() {
                     "w" | "wav" => FileFormat::Wav,
                     "v" | "vorbis" => FileFormat::Vorbis,
                     "a" | "aac" => FileFormat::Aac,
-                    _ => fatal!("fatal error: invalid format"),
+                    _ => panic!("fatal error: invalid format"),
                 }
             }
             "--do-not-warn" => print_warning = false,
@@ -126,19 +127,22 @@ fn main() {
             "--verbose" | "-v" => verbosity = 2,
             "--quiet" | "-q" => verbosity = 1,
             "--silent" | "-Q" => verbosity = 0,
-            _ => warn!(format!("warning: unknown argument: \"{}\"", args[x])),
+            _ => warn!("warning: unknown argument: \"{}\"", args[x]),
         };
         x += 1
     }
+    if verbosity == 2 {
+        println!("Use \"RUST_LOG=trace\" for all logging info.\n");
+    }
     if conf.input_file.len() < 1 {
-        fatal!("fatal error: no input file specified")
+        panic!("fatal error: no input file specified")
     }
     if conf.output_dir.len() < 1 && !searching{
-        fatal!("fatal error: no output directory specified")
+        panic!("fatal error: no output directory specified")
     }
 
     conf.songs = parser::parse_file(&conf.input_file.to_string());
-    debug!(format!("full parser output: {:?}\n\n\n", conf.songs));
+    trace!("full parser output: {:?}\n\n\n", conf.songs);
     if searching{
         search_files(conf.songs, search_query);
         std::process::exit(0)
@@ -165,7 +169,7 @@ fn clean_directory(warning: bool, conf: Options) {
                 out.push((
                     (&i.as_ref()
                         .unwrap_or_else(|_| {
-                            fatal!(format!("Error Reading dir \"{}\"", conf.output_dir.clone()))
+                            panic!("Error Reading dir \"{}\"", conf.output_dir.clone())
                         })
                         .path()
                         .file_stem()
@@ -178,7 +182,7 @@ fn clean_directory(warning: bool, conf: Options) {
             }
             out
         }
-        Err(_) => fatal!(format!("fatal error: unknown file \"{}\"", conf.output_dir)),
+        Err(_) => panic!("fatal error: unknown file \"{}\"", conf.output_dir),
     };
 
     'bigloop: for file in files {
@@ -192,7 +196,7 @@ fn clean_directory(warning: bool, conf: Options) {
                 && Question::new("Are you sure you want to remove unlisted files?").confirm()
                     == Answer::NO
             {
-                fatal!("Fatal Error: Music downloaded, but no files were deleted");
+                panic!("Fatal Error: Music downloaded, but no files were deleted");
             }
             initial_warning = false;
             if Question::new(
@@ -205,15 +209,15 @@ fn clean_directory(warning: bool, conf: Options) {
             .confirm()
                 == Answer::NO
             {
-                fatal!("fatal: file deletion aborted, {files_deleted} files deleted.")
+                panic!("fatal: file deletion aborted, {files_deleted} files deleted.")
             }
         }
         match std::fs::remove_file(&file.1){
-            Ok(_) => {alert!(format!("Deleted file \"{}\".",file.1));files_deleted+=1},
-            Err(tp)=> fatal!(format!("Fatal: Failed to delete file \"{}\"({}). {files_deleted} files deleted. Error: {tp}",file.0, file.1))
+            Ok(_) => {info!("Deleted file \"{}\".",file.1);files_deleted+=1},
+            Err(tp)=> panic!("Fatal: Failed to delete file \"{}\"({}). {files_deleted} files deleted. Error: {tp}",file.0, file.1)
         };
     }
-    alert!(format!(
+    info!(
         "{files_deleted} file{} {} deleted",
         match files_deleted {
             1 => "",
@@ -223,7 +227,7 @@ fn clean_directory(warning: bool, conf: Options) {
             1 => "was",
             _ => "were",
         }
-    ));
+    );
 }
 
 use which::which;
@@ -232,7 +236,7 @@ fn is_sane() {
     let programs_needed = ["yt-dlp", "ffmpeg", "wget"];
     for i in programs_needed {
         if which(i).is_err() {
-            fatal!(format!("Fatal error: {i} cannot be found"))
+            panic!("Fatal error: {i} cannot be found")
         }
     }
 }

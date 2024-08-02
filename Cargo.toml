@@ -8,13 +8,19 @@ edition = "2021"
 
 [dependencies]
 rand = "*"
+log = "*"
 termion = "*"
 which = "*"
 delete = "*"
 question="*"
+colog = "*"
 
 [profile.release]
 strip = true
 lto = true
-#rustflags = ["-C", "target-cpu=native"]
-codegen-units = 1
+opt-level = 3
+panic = 'abort'
+
+[profile.dev]
+opt-level = 0
+

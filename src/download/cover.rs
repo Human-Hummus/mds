@@ -1,5 +1,7 @@
 //this file is a mess.
 
+extern crate log;
+use log::{warn, info, trace, error};
 use crate::download::gen_filename;
 use crate::*;
 use std::fs;
@@ -16,16 +18,16 @@ pub fn process_cover(
 ) -> String {
     if is_url {
         let new_cover = wget_cover(og_cover);
-        debug!(og_cover);
+        trace!("{}", og_cover);
         if new_cover == "ERR" {
-            debug!(format!("Alert: unable to download cover for \"{}\"", title));
+            trace!("Alert: unable to download cover for \"{}\"", title);
             return String::from("None");
         }
         if verbosity > 1 {
-            alert!(format!(
+            trace!(
                 "Successfully downloaded cover art for \"{}\" automatically!",
                 title
-            ))
+            )
         };
         return new_cover;
     } else if og_cover == "None" && is_infile_link {
@@ -41,7 +43,7 @@ fn download_cover_art(infile: &String, title: &String) -> String {
         || infile.contains("https:/youtu.be")
     {
         if infile.contains("&"){
-            warn!(format!("Warning: song \"{title}\" has an input URL that contains additional information (detected by an ampersand). Consider removing this information as it may impair automatic thumbnail downloading."))
+            warn!("Warning: song \"{title}\" has an input URL that contains additional information (detected by an ampersand). Consider removing this information as it may impair automatic thumbnail downloading.")
         }
         return youtube(infile, title);
     }
@@ -88,20 +90,20 @@ fn youtube(infile: &String, title: &String) -> String {
     if !(toret == "ERR") {
         return toret;
     }
-    debug!(format!(
+    info!(
         "Failed to automatically download cover art for \"{}\". This can be ignored.",
         title
-    ));
+    );
     return "None".to_string();
 }
 
 fn soundcloud(infile: &String, title: &String) -> String {
     let sc_html_file = wget_cover(infile);
     if sc_html_file == "ERR" {
-        debug!(format!(
+        trace!(
             "(0)error downloading cover from soundcloud for \"{}\"",
             title
-        ));
+        );
         return "None".to_string();
     }
     let contents =
@@ -112,10 +114,10 @@ fn soundcloud(infile: &String, title: &String) -> String {
             .arg(sc_html_file.clone())
             .status()
             .expect("This error shouln't be possible...");
-        debug!(format!(
+        trace!(
             "(1)error downloading cover from soundcloud for \"{}\"",
             title
-        ));
+        );
         return "None".to_string();
     }
 
@@ -132,10 +134,10 @@ fn soundcloud(infile: &String, title: &String) -> String {
             .to_owned()
     );
 
-    debug!(format!(
+    trace!(
         "soundcloud cover art function: img_link: {}",
         img_link
-    ));
+    );
     Command::new("rm")
         .arg("-f")
         .arg(sc_html_file.clone())
@@ -143,10 +145,10 @@ fn soundcloud(infile: &String, title: &String) -> String {
         .expect("This error shouln't be possible...");
     match wget_cover(&img_link).as_str() {
         "ERR" => {
-            debug!(format!(
+            trace!(
                 "(2)Error downloading soundcloud cover art for \"{}\"",
                 title
-            ));
+            );
             return "None".to_string();
         }
         x => {

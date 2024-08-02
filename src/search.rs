@@ -1,4 +1,6 @@
 use crate::*;
+extern crate log;
+use log::{warn, info, trace, error};
 
 pub fn search_files(songs:Vec<SongDesc>, query:String){
     let mut said_results = false;
@@ -7,9 +9,9 @@ pub fn search_files(songs:Vec<SongDesc>, query:String){
         if songs[x].name.to_lowercase().contains(&query){
             if !said_results{
                 said_results=true;
-                alert!("Results:\n\n");
+                info!("Results:\n\n");
             }
-            alert!(format!("\t\"{}\":\n\t\t{}:\"{}\"\n\t\t{}\n",
+            info!("\t\"{}\":\n\t\t{}:\"{}\"\n\t\t{}\n",
                     songs[x].name,
                     match songs[x].is_file_url{
                         true => "Source URL: ",
@@ -25,11 +27,11 @@ pub fn search_files(songs:Vec<SongDesc>, query:String){
                                 }, songs[x].cover)
                     }
                                     
-                    ));
+                    );
         }
         x+=1;
     }
     if !said_results{
-        alert!("No results.")
+        info!("No results.")
     }
 }
