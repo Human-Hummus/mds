@@ -60,3 +60,4 @@ Flag | Short | purpose
 \--verbose|-v| Don't supress output(default).
 }
 
+Use "RUST_LOG=trace" for all logging info.

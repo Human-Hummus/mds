@@ -1,43 +1,43 @@
 //this file is a mess.
 
 extern crate log;
-use log::{warn, info, trace, error};
+use log::{warn, info, trace};
 use crate::download::gen_filename;
-use crate::*;
 use std::fs;
 use std::process::Command;
 
-//the output is a filename OR "None".
+//the output is a file path OR None.
 pub fn process_cover(
-    og_cover: &String,
+    og_cover: &Option<String>,
     is_url: bool,
     is_infile_link: bool,
     infile: &String,
     title: &String,
     verbosity: u8,
-) -> String {
+) -> Option<String> {
     if is_url {
-        let new_cover = wget_cover(og_cover);
-        trace!("{}", og_cover);
-        if new_cover == "ERR" {
-            trace!("Alert: unable to download cover for \"{}\"", title);
-            return String::from("None");
-        }
-        if verbosity > 1 {
-            trace!(
-                "Successfully downloaded cover art for \"{}\" automatically!",
-                title
-            )
+        let new_cover = wget_cover(&(og_cover.clone().unwrap()));
+        trace!("{:?}", og_cover);
+        match new_cover {
+            Ok(nc) => {
+                if verbosity > 1 {
+                    trace!("Successfully downloaded cover art for \"{title}\" automatically!")
+                }
+                return Some(nc);
+            },
+            _ =>{
+                trace!("Alert: unable to download cover for \"{}\"", title);
+                return None
+            }
         };
-        return new_cover;
-    } else if og_cover == "None" && is_infile_link {
+    } else if og_cover.is_none() && is_infile_link {
         return download_cover_art(infile, title);
     } else {
-        return (og_cover).to_string();
+        return og_cover.clone();
     }
 }
 
-fn download_cover_art(infile: &String, title: &String) -> String {
+fn download_cover_art(infile: &String, title: &String) -> Option<String> {
     if infile.contains("https://www.youtube.com")
         || infile.contains("https://youtube.com")
         || infile.contains("https:/youtu.be")
@@ -50,10 +50,10 @@ fn download_cover_art(infile: &String, title: &String) -> String {
     if infile.contains("https://soundcloud.com") {
         return soundcloud(infile, title);
     }
-    return "None".to_string();
+    None
 }
 
-fn wget_cover(url: &String) -> String {
+fn wget_cover(url: &String) -> Result<String, ()> {
     let newfilename = gen_filename(&"".to_string());
     return match std::process::Command::new("wget")
         .arg("-q")
@@ -63,14 +63,14 @@ fn wget_cover(url: &String) -> String {
         .status()
     {
         Ok(k) => match k.success() {
-            true => newfilename,
-            false => "ERR".to_string(),
+            true => Ok(newfilename),
+            false => Err(()),
         },
-        Err(_) => "ERR".to_string(),
+        Err(_) => Err(()),
     };
 }
 
-fn youtube(infile: &String, title: &String) -> String {
+fn youtube(infile: &String, title: &String) -> Option<String> {
     let mut the_vid_link = String::new();
     if infile.contains("https://youtube.com") || infile.contains("https://www.youtube.com") {
         the_vid_link = infile
@@ -81,47 +81,37 @@ fn youtube(infile: &String, title: &String) -> String {
     if infile.contains("https://youtu.be") {
         the_vid_link = infile.split("https://www.youtu.be/").collect::<Vec<&str>>()[1].to_owned();
     }
-    let mut toret =
-        wget_cover(&("https://i.ytimg.com/vi/".to_owned() + &the_vid_link + "/hqdefault.jpg"));
-    if !(toret == "ERR") {
-        return toret;
+    match wget_cover(&("https://i.ytimg.com/vi/".to_owned() + &the_vid_link + "/hqdefault.jpg")){
+        Ok(tr) => return Some(tr),
+        _ => {}
     }
-    toret = wget_cover(&("https://i.ytimg.com/vi/".to_owned() + &the_vid_link + "/hq720.jpg"));
-    if !(toret == "ERR") {
-        return toret;
+    match wget_cover(&("https://i.ytimg.com/vi/".to_owned() + &the_vid_link + "/hq720.jpg")){
+        Ok(tr) => return Some(tr),
+        _ => {}
     }
-    info!(
-        "Failed to automatically download cover art for \"{}\". This can be ignored.",
-        title
-    );
-    return "None".to_string();
+
+    info!("Failed to automatically download cover art for \"{}\". This can be ignored.",title);
+    None
 }
 
-fn soundcloud(infile: &String, title: &String) -> String {
+fn soundcloud(infile: &String, title: &String) -> Option<String> {
     let sc_html_file = wget_cover(infile);
-    if sc_html_file == "ERR" {
-        trace!(
-            "(0)error downloading cover from soundcloud for \"{}\"",
-            title
-        );
-        return "None".to_string();
+    if sc_html_file.is_err(){
+        trace!("Error downloading cover from soundcloud for \"{title}\"");
+        return None
     }
-    let contents =
-        fs::read_to_string(sc_html_file.clone()).expect("error; this shouldn't happen...");
-    if !(contents.contains("src=\"https://i1.sndcdn.com")) {
+    let contents = fs::read_to_string(sc_html_file.clone().unwrap()).unwrap();
+    if !contents.contains("src=\"https://i1.sndcdn.com") {
         Command::new("rm")
             .arg("-f")
-            .arg(sc_html_file.clone())
+            .arg(sc_html_file.unwrap())
             .status()
             .expect("This error shouln't be possible...");
-        trace!(
-            "(1)error downloading cover from soundcloud for \"{}\"",
-            title
-        );
-        return "None".to_string();
+        trace!("Error downloading cover from soundcloud for \"{title}\"");
+        return None;
     }
 
-    //I know, this isn't good; I've been a bad boy.
+    //I know, this isn't good; I've been a bad boy. (UwU)
     let img_link = format!(
         "https://i1.sndcdn.com{}",
         contents
@@ -134,25 +124,22 @@ fn soundcloud(infile: &String, title: &String) -> String {
             .to_owned()
     );
 
-    trace!(
-        "soundcloud cover art function: img_link: {}",
-        img_link
-    );
+    trace!("Soundcloud cover art function: img_link: {img_link}");
     Command::new("rm")
         .arg("-f")
-        .arg(sc_html_file.clone())
+        .arg(sc_html_file.unwrap())
         .status()
         .expect("This error shouln't be possible...");
-    match wget_cover(&img_link).as_str() {
-        "ERR" => {
+    match wget_cover(&img_link) {
+        Err(_) => {
             trace!(
                 "(2)Error downloading soundcloud cover art for \"{}\"",
                 title
             );
-            return "None".to_string();
+            return None;
         }
-        x => {
-            return x.to_string();
+        Ok(x) => {
+            return Some(x);
         }
     }
 }

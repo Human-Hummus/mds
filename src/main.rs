@@ -6,7 +6,7 @@ pub mod parser;
 pub mod search;
 extern crate question;
 extern crate log;
-use log::{warn, info, trace, error};
+use log::{warn, info, trace};
 extern crate termion;
 use question::Answer;
 use question::Question;
@@ -52,6 +52,7 @@ fn main() {
     let mut verbosity: u8 = 2;
     let mut searching = false; // is this a search? If so, we don't need an output file.
     let mut search_query = String::new();
+    let mut get_artist = true;
 
     is_sane();
     let args: Vec<String> = env::args().collect();
@@ -127,12 +128,10 @@ fn main() {
             "--verbose" | "-v" => verbosity = 2,
             "--quiet" | "-q" => verbosity = 1,
             "--silent" | "-Q" => verbosity = 0,
+            "--no-artist" | "-n" => get_artist = false,
             _ => warn!("warning: unknown argument: \"{}\"", args[x]),
         };
         x += 1
-    }
-    if verbosity == 2 {
-        println!("Use \"RUST_LOG=trace\" for all logging info.\n");
     }
     if conf.input_file.len() < 1 {
         panic!("fatal error: no input file specified")
@@ -142,6 +141,9 @@ fn main() {
     }
 
     conf.songs = parser::parse_file(&conf.input_file.to_string());
+    if get_artist{
+        parser::get_artist_name(&mut conf.songs)
+    }
     trace!("full parser output: {:?}\n\n\n", conf.songs);
     if searching{
         search_files(conf.songs, search_query);

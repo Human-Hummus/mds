@@ -1,29 +1,20 @@
-use crate::*;
 use std::{fs::read_to_string, path::Path};
 extern crate log;
-use log::{warn, info, trace, error};
 
 
 #[derive(Debug, Clone)]
 pub struct SongDesc {
+    pub artist: String,
     pub name: String,
     pub infile: String,
     pub is_file_url: bool,
-    pub cover: String,
+    pub cover: Option<String>,
     pub is_cover_url: bool,
 }
 impl SongDesc {
     pub fn clone(&self) -> SongDesc {
         return SongDesc {
-            name: self.name.clone(),
-            infile: self.infile.clone(),
-            is_file_url: self.is_file_url,
-            cover: self.cover.clone(),
-            is_cover_url: self.is_cover_url,
-        };
-    }
-    pub fn Clone(&self) -> SongDesc {
-        return SongDesc {
+            artist: self.artist.clone(),
             name: self.name.clone(),
             infile: self.infile.clone(),
             is_file_url: self.is_file_url,
@@ -70,10 +61,11 @@ pub fn parse_file(path: &String) -> Vec<SongDesc> {
             }
             '/' | 'a'..='z' | 'A'..='Z' | '1'..='9' | '-' | '.' | ',' | '!' => {
                 let mut song = SongDesc {
+                    artist: String::new(),
                     name: String::new(),
                     infile: String::new(),
                     is_file_url: false,
-                    cover: String::new(),
+                    cover: None,
                     is_cover_url: false,
                 };
 
@@ -123,27 +115,27 @@ pub fn parse_file(path: &String) -> Vec<SongDesc> {
                         lines_to(&text, x)
                     )
                 }
-
+                let mut cover = String::new(); 
                 while x < text.len() && text[x] != '\n' {
-                    song.cover.push(text[x]);
+                    cover.push(text[x]);
                     x += 1
                 }
 
-                song.cover = song.cover.trim().to_owned();
+                cover = cover.trim().to_owned();
 
-                if song.cover.len() > 0 {
-                    if song.cover.chars().nth(0).unwrap() == '!' {
+                if cover.len() > 0 {
+                    if cover.chars().nth(0).unwrap() == '!' {
                         song.is_cover_url = true;
-                        song.cover = song.cover.chars().collect::<Vec<char>>()
-                            [1..song.cover.len()]
+                        song.cover = Some(cover.chars().collect::<Vec<char>>()
+                            [1..cover.len()]
                             .iter()
                             .cloned()
-                            .collect::<String>()
+                            .collect::<String>())
                     } else {
-                        song.cover = format!("{}{}", current_home, song.cover)
+                        song.cover = Some(format!("{}{}", current_home, cover))
                     }
                 } else {
-                    song.cover = String::from("None")
+                    song.cover = None
                 }
                 toret.push(song);
             }
@@ -181,4 +173,20 @@ pub fn parse_file(path: &String) -> Vec<SongDesc> {
         };
     }
     toret
+}
+
+pub fn get_artist_name(input:&mut Vec<SongDesc>){
+    let mut x = 0;
+    while x < input.len(){
+        if !input[x].name.contains("-"){x+=1;continue}
+        let mut y = 0;
+        let title_chars:Vec<char> = input[x].name.chars().collect();
+        let mut artist = String::new();
+        while y < title_chars.len() && title_chars[y] != '-'{
+            artist.push(title_chars[y]);
+            y+=1;
+        }
+        input[x].artist=artist.trim().to_owned();
+        x+=1;
+    }
 }

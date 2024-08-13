@@ -2,7 +2,7 @@ use delete;
 use rand;
 use rand::distributions::{Distribution, Uniform};
 extern crate log;
-use log::{warn, info, trace, error};
+use log::{info, trace, error};
 mod cover;
 use crate::*;
 
@@ -96,7 +96,7 @@ pub fn download(conf: Options, verbosity: u8) {
             conf.file_extension()
         );
 
-        match final_ffmpeg(&song.cover, &outfile, &infile, &conf) {
+        match final_ffmpeg(&song.cover, &outfile, &infile, &conf, &song.artist) {
             Some(_) => (),
             None => {
                 error!(
@@ -110,8 +110,8 @@ pub fn download(conf: Options, verbosity: u8) {
         if song.is_file_url {
             delete::delete_file(&infile).unwrap();
         }
-        if song.is_cover_url && song.cover != "None" {
-            delete::delete_file(&song.cover).unwrap();
+        if song.is_cover_url && !song.cover.is_none() {
+            delete::delete_file(&song.cover.unwrap()).unwrap();
         }
         x += 1;
     }
@@ -134,30 +134,38 @@ pub fn download(conf: Options, verbosity: u8) {
 }
 
 fn final_ffmpeg(
-    cover: &String,
+    cover: &Option<String>,
     outputfile: &String,
     infile: &String,
     conf: &Options,
+    artist: &String
 ) -> Option<i8> {
-    if cover == "None" {
-        std::process::Command::new("ffmpeg")
-            .arg("-i")
+    match cover{
+        None =>{
+            let mut cmd = std::process::Command::new("ffmpeg");
+            cmd.arg("-i")
             .arg(infile.trim().to_owned())
             .arg("-c:a")
             .arg(conf.codec())
             .arg("-b:a")
             .arg(conf.bitrate())
             .arg("-loglevel")
-            .arg("error")
-            .arg(outputfile)
-            .status()
-            .ok()?;
-    } else {
-        std::process::Command::new("ffmpeg")
-            .arg("-i")
+            .arg("error");
+
+            if artist != ""{
+                cmd.arg("-metadata:s:v").arg(format!("title=\"{}\"", str::replace(artist, "\"", "\\\"")));
+            }
+            cmd.arg(outputfile);
+
+            cmd.status().ok()?},
+    
+        Some(cvr) => {
+            let mut cmd = std::process::Command::new("ffmpeg");
+
+            cmd.arg("-i")
             .arg(infile.trim().to_owned())
             .arg("-i")
-            .arg(cover.trim().to_owned())
+            .arg(cvr.trim().to_owned())
             .arg("-map")
             .arg("0:a")
             .arg("-map")
@@ -169,11 +177,14 @@ fn final_ffmpeg(
             .arg("-disposition:1")
             .arg("attached_pic")
             .arg("-loglevel")
-            .arg("error")
-            .arg(outputfile)
-            .status()
-            .ok()?;
-    }
+            .arg("error");
+            if artist != ""{
+                cmd.arg("-metadata:s:v").arg(format!("title={}", str::replace(artist, "\"", "\\\"")));
+            }
+            cmd.arg(outputfile);
+
+            cmd.status().ok()?}
+    };
     Some(0)
 }
 
