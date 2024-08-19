@@ -120,12 +120,18 @@ pub fn download(conf: Options, verbosity: u8) {
         info!(
             "Total files already present: {:.0}({:.1}%).",
             total_files_already_present,
-            100.0 * (total_files_already_present / total_songs_seen)
+            match ((total_files_already_present / total_songs_seen) as f32).is_nan(){
+                true => 100.0,
+                _ => 100.0 * (total_files_already_present / total_songs_seen)
+            }
         );
         info!(
             "Total files failed: {:.0}({:.0}%)",
             errored,
-            100.0 * (errored / total_files_already_present)
+            match ((errored/total_files_already_present) as f32).is_nan(){
+                true => 0.0,
+                _ => 100.0 * (errored / total_files_already_present)
+            }
         );
     }
     if file_errors != String::new() {

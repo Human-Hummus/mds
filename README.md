@@ -66,6 +66,20 @@ Comments starts with a hash(\#) symbol and continue to the end of the line.
 Comments must start at the **begining** of a line (whitespace is ignored).
 
 
+##Installing
+You must have yt-dlp, ffmpeg, wget, and cargo (rust) installed.
+
+The following will install or update MDS:
+- git clone this directory
+- cd into the downloaded directory
+- Run `sudo make install`
+- MDS is now installed or updated. 
+
+MDS is installed in /usr/bin. this can cause issues for exotic distros.
+Linux only (freeBSD and MacOS would probably work, but I've never tested it)
+
+
+
 ##Flags
 |Flag | Short | purpose|
 |---|---|---|
