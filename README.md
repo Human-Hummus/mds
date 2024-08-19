@@ -1,44 +1,81 @@
 # MDS - Music Download Script.
 
-This is what it says on the tin; it downloads music. It can copy music from local files, too. It's built using ffmpeg & yt-dlp.
+MDS does what it says on the tin: it downloads music! (Or copies them from local files!) It's built using ffmpeg, yt-dlp, wget, and, of course, Rust!
 
- The reason I made this is because while yt-dlp can download a list of songs, and I can easily copy local files, yt-dlp can't know if a song is already downloaded or not until it sees the title. Additionally, it's hard to make yt-dlp output multiple files with custom titles. Also, cover art isn't included with yt-dlp's outputted files(usually), and it'd be nice to combine compressing local files and downloading remote files into one script. This is, by the way, a script and not much more. It's written in Rust because of course it is. I had written an earlier version of this in Python, but I've rewritten it in Rust because, well, it's fun. That and it's cooler. Also, (in my opinion) Python is a poor choice for this project. 
+I made MDS because, while yt-dlp *can* download a list (like a YouTube playlist) of songs, it doesn't know if a song is already downloaded until it sees the title on YouTube or whatever, and thus, for every time you want to update your local folder, it's gotta check every single page, which is slow and can get real spammy, if you've got a large playlist. 
+Additionally, it's hard to make yt-dlp output multiple files with custom titles. Cover art isn't included with yt-dlp's outputted files, either, and you can't set your own cover if you don't like the pre-determined one. 
+And what about local media? It'd be nice to manage **ALL** songs with one file.
 
-
-The format of the input file(s) is as follows:
-
-<mark>\#this is a comment</mark>
-
-The comment starts with a hash(\#) symbol.
-
-<mark>\*/home/username</mark>
-
-This one's less obvious. This is the variable that is appended to the beginning of input music files, so "yeet.mp3" will now become "/home/username/yeet.mp3". This should always be a directory. The default value is the path to the file's directory.
-
-This can be overridden with the -o command line option.
-
-<mark>yeet.mp3 | yeetus | cover.png</mark>
-
- This is even less obvious. there are three values seperated by pipe(|) symbols. Note that the third option(cover.png) can be ommited, and the line changed to "<mark>yeet.mp3 | yeetus</mark>". Another thing to note is that whitespace preceeding and proceeding each value will also be ommited. The first value(yeet.mp3) is the input file, this stream will be copied. The second value(yeetus) is the title of the song. The outputted file for this line will be yeetus.(mp3/opus/flac), based on the title.  The third and final value(cover.png) is the cover art. Note that the cover art file also has the default or specified directory appended to the beginning of it. 
+This program can download many files at once, with custom covers and titles, and supports local media sources.
 
 
- Another thing that is **very** important: the excamation mark(!). when the ! is appended to the beginning of the value for the cover art or input file, i.e(!yeet.mp3 | ... | !cover.png), the file will be treated as a link to a remote file. This link will be passed to yt-dlp in the case of the input file, and wget in the case of the cover art. It will then be  converted into a local file in the /tmp/ directory, and the process will continue from there as normal. 
+##Input file content:
 
- Also, it's possible, if you supply a link and not a cover, that MDS will be able to find the cover art on its own. This is rather buggy, and currently only works with Soundcloud and Youtube, but it's pretty neat. 
+###Songs
+Adding a song to an input file is as follows:
+$source | ($artist\_name - ) $song\_name ( | $cover)
 
- If you want to also parse another file, in the first file you can put an at symbol and then the file's name So, to include "blah.txt", you'd type "@blah.txt". 
---
+Everything in parenthesis is optional
 
-**FLAGS:**
+| Variable | Meaning
+|---            |---|
+|$source        | The source file, relative to the directory containing the input file, OR URL. If it's a URL it must be preceeded by an exclaimation mark (!). Required.
+|$artist\_name  | The name of the artist for the song. This will also be included in the name of the song, and embeded in the file. Optional.
+|$song\_name    | The name of the song, and the name of the output file (aside from the file extension). Required.
+|$cover         | The cover image of the song. The format is identical to $source. Optional.
 
+MDS will attempt to automatically get the cover of a YouTube or SoundCloud, if one isn't provided.
+
+Example:
+!https://www.youtube.com/watch?v=dQw4w9WgXcQ | Rick Astley - Never Gonna Give You Up | !https://www.blender.org/wp-content/themes/bthree/assets/icons/favicon-32x32.png
+
+This sets Never Gonna Give You Up from YouTube as the source, sets Rick Astley as the artist,
+and uses the Blender.org favicon as the cover, which it downloads. The outputted file would be named "Rick Astley - Never Gonna Give You Up.ogg".
+
+song.mp4 | artist - song | cover.png
+
+This would get the audio of song.mp4, set the song name to "artist - song", and the cover image to cover.png. The outputted file would be named "artist - song.ogg".
+Also, song.mp4 and cover.png would need to be in the same directory. Though you could make it ../cover.png or whatever if you want. Unless...
+
+
+
+###Changing input directory.
+
+By default, song sources and covers will be taken relative to the directory of the current input file.
+You can set it to another directory by starting a line with the asterisk (\*) and then writing the new directory you want to use.
+
+For example:
+\*/home/username
+
+Would set the default directory to /home/username (if the path doesn't begin with a slash, it will ALSO be relative to the current file).
+This applies **only** to the current file.
+
+
+###Imports
+You can import another input file by starting a line with an at sign (@) and writing the path to the other file, relative to the current directory MDS is using.
+For example:
+@poop/input.txt
+
+Would also get the songs from poop/input.txt
+
+
+
+###Comments
+\#this is a comment
+Comments starts with a hash(\#) symbol and continue to the end of the line.
+Comments must start at the **begining** of a line (whitespace is ignored).
+
+
+##Flags
 |Flag | Short | purpose|
 |---|---|---|
-|--format [format] | -f [format]| Set the output files to the format "[format]"|
-|--help | -h | Print help info|
-|--output [dir]| -o [dir]| Set the output directory to "[dir]"|
-|--input [file]|-i [file]| Set the input file to"[file]"|
-|--quiet |-q | Supress logs consisting of anything other than errors or warnings.|
-|--silent|-Q | Supress logs consisting of anything other than errors.|
-|--verbose|-v| Don't supress output(default).|
-||
-
+| --input [file]| -i [file]| Set the input file to"[file]"|
+| --output [dir]| -o [dir]| Set the output directory to "[dir]"|
+| --format [format] | -f [format]| Set the output files to the format "[format]"|
+| --search [query] | -s [query] | Search through song titles for "[query]".
+| --help | -h | Print help info|
+| --delete-not-present || Delete files in the directory that aren't in the input file, this will print several warnings and ask before deleting any files.|
+| --do-not-warn | -n | Don't print the warnings or ask before deleting files.|
+| --quiet | -q | Supress logs consisting of anything other than errors or warnings.|
+| --silent| -Q | Supress logs consisting of anything other than errors.|
+| --verbose| -v| Don't supress output(default).|

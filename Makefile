@@ -15,5 +15,3 @@ uninstall:
 clean:
 	rm -rf target
 
-docs:
-	flaarc -i readme.flaarc -o README.md -f markdown

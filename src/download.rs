@@ -153,7 +153,7 @@ fn final_ffmpeg(
             .arg("error");
 
             if artist != ""{
-                cmd.arg("-metadata:s:v").arg(format!("title=\"{}\"", str::replace(artist, "\"", "\\\"")));
+                cmd.arg("-metadata:s:v").arg(format!("title=\"{artist}\""));
             }
             cmd.arg(outputfile);
 
@@ -179,7 +179,7 @@ fn final_ffmpeg(
             .arg("-loglevel")
             .arg("error");
             if artist != ""{
-                cmd.arg("-metadata:s:v").arg(format!("title={}", str::replace(artist, "\"", "\\\"")));
+                cmd.arg("-metadata:s:v").arg(format!("title={artist}"));
             }
             cmd.arg(outputfile);
 
