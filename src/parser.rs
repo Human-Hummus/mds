@@ -46,6 +46,8 @@ pub fn parse_file(path: &String) -> Vec<SongDesc> {
     let mut toret: Vec<SongDesc> = Vec::new();
     let mut x = 0;
     let mut current_home = Path::new(path)
+        .canonicalize()
+        .unwrap()
         .parent()
         .unwrap()
         .to_string_lossy()
