@@ -1,0 +1,89 @@
+@std;
+body{
+		h1{"MDS - Music Download Script"}
+		p{`MDS does what it says on the tin: it downloads music! (or copies them from local files!) It's built using ffmpeg, yt-dlp, wget, and, of course, Rust!
+
+		I made MDS because, while yt-dlp `i{can}` download a list (like a YouTube playlist) of songs, it doesn't know if a song is already downloaded until it sees the title on YouTube or whatever, and thus, every time you want to update your local folder, it must check every single page, which is slow and can get real spammy, if you've got a large playlist. 
+Additionally, it's hard to make yt-dlp output multiple files with custom titles. Cover art isn't included with yt-dlp's outputted files, either, and you can't set your own cover if you don't like the pre-determined one. 
+And what about local media? It'd be nice to manage `b{ALL}` songs with one file.
+
+		This program can download many files at once, with custom covers and titles, and supports local media sources.`}
+		h2{"Input File Content"}
+		h3{"Songs"}
+		`Adding a song to an input file is as follows:`
+		newline()
+		text{`$source | ($artist_name -)  $song_name  | ($cover)`}
+		newline()
+		text{`Everything in parenthesis is optional`}
+		table(
+				row(Variable, Meaning),
+				row(text{"$source"}, text{"The source file, relative to the directory containing the input file or URL. If it's a URL, it must be preceeded by an exclaimation mark (!)."}),
+				row(text{"$artist_name"}, text{"The name of the artist of the song. This'll also be included in the filename AND embedded in the file. This is an optional component"}),
+				row(text{"$song_name"}, text{"The name of the song, and the name of the output file (aside from the file's extension). Required."}),
+				row(text{"$cover"}, text{"Cover image of the song. The format of this is identical to source with regaurds to the URL stuff. Optional."})
+		)
+		p{"Note that MDS will attempt to automatically get the cover of a YouTube or SoundCloud song if one isn't provided by the user."}
+		newline()
+		`Example:`
+		newline()
+		text{`!https://www.youtube.com/watch?v=dQw4w9WgXcQ | Rick Astley - Never Gonna Give You Up | !https://www.blender.org/wp-content/themes/bthree/assets/icons/favicon-32x32.png`}
+		newline()
+		p{text{`This sets Never Gonna Give You Up from YouTube as the source, sets Rick Astley as the artist, and uses the Blender.org favicon as the cover, which it downloads. The outputted file would be named "Rick Astley - Never Gonna Give You Up.ogg".`}}
+		newline()
+		text{"Example #2:"}
+		newline()
+		text{"song.mp4 | artist - song | cover.png"}
+		newline()
+		p{text{`This would get the audio of song.mp4, set the song name to "artist - song", and the cover image to cover.png. The outputted file would be named "artist - song.ogg". Also, song.mp4 and cover.png would need to be in the same directory. Though, you could make it ../cover.png or whatever, if you want. Unless...`}}
+		h3{"Changing the Input Directory"}
+		text{`By default, song sources and covers will be taken relative to the directory of the current input file. You can set it to another directory by starting a line with the asterisk (\*) and then writing the new directory you want to use.`}
+		newline()
+		`For example:`
+		text{"*/home/user"}
+		newline()
+		text{`Would set the default directory to /home/username (if the path doesn't begin with a slash, it will ALSO be relative to the current file). This applies only to the current file.`}
+		h3{"Imports"}
+		text{`You can import another input file by starting a line with an at sign (@) and writing the path to the other file, relative to the current directory MDS is using.
+For example:`}
+		newline()
+		text{"@poop/input.txt"}
+		newline()
+		text{"This'd also get the songs from poop/input.txt"}
+		h3{"Comments"}
+		text{"#This is a comment"}
+		newline()
+		text{"Simple enough; Comments start with a hash(\#) symbol and continue to the end of the line. Comments must start at the beginning of a line, though it may be preceeded by whitespace."}
+		h2{"Installing/Updating*"}
+		text{"*Linux exclusive. *BSD and MacOS would probably work, but it's untested."}newline()
+		text{"You must have the following software installed:"}
+		list(
+				link("https://github.com/yt-dlp/yt-dlp"){"yt-dlp"},
+				link("https://ffmpeg.org/"){FFmpeg},
+				link("https://www.gnu.org/software/wget/"){Wget},
+				link("https://crates.io/"){"Cargo (Rust)"}
+		)
+		h3{"Commands"}
+		list(
+				"git clone " link("https://github.com/Human-Hummus/mds"){"this repository"},
+				"cd into the directory",
+				"run sudo make install",
+				"MDS is now installed and can be invoked with \"mds\""
+		)
+		text{"Note that MDS is installed to /usr/bin. This can cause issues on some (typically fairly exotic) Linux distibutions, namely NixOS."}
+		h2{"Command Line Flags"}
+		table(
+				row("Flag", "Abbreviation", "Purpose"),
+				row(text{"--input [file]"}, text{"-i [file]"}, text{`Set the input file to "[file]"`}),
+				row(text{"--output [dir]"}, text{"-o [dir]"}, text{"Set output directory to \"[dir]\""}),
+				row(text{"--format [format]"}, text{"-f [format]"}, text{"Set output files to the format \"[format]\". Note that this format can be different to that of other files in the output directory; it'll be fine."}),
+				row(text{"--search [query]"}, text{"-s [query]"}, text{"Search through song titles for the string \"[query]\""}),
+				row(text{"--help"}, text{"-h"}, text{"Print help info"}),
+				row(text{"--delete-not-present"}, text{"N/A"}, text{"Delete files in the output directory that aren't described in the input file(s). This will print several warnings before deleting any files."}),
+				row(text{"--do-not-warn"}, text{"-n"}, text{"Omit the warnings described above"}),
+				row(text{"--quiet"}, text{"-q"}, text{"Suppress logs consisting of anything other than errors or warnings."}),
+				row(text{"--silent"}, text{"-Q"}, text{"Suppress logs consisting of anything other than errors."}),
+				row(text{"--verbose"}, text{"-v"}, text{"Don't suppress output (default behavior)"}),
+
+		)
+
+}
