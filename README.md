@@ -34,7 +34,7 @@ Example \#2:
 song.mp4 | artist - song | cover.png
 
 
-This would get the audio of song.mp4, set the song name to "artist - song", and the cover image to cover.png. The outputted file would be named "artist - song.ogg". Also, song.mp4 and cover.png would need to be in the same directory. Though, you could make it ../cover.png or whatever, if you want. Unless...
+This would get the audio of song.mp4, set the song name to artistsong, and the cover image to cover.png. The outputted file would be named "artist - song.ogg". Also, song.mp4 and cover.png would need to be in the same directory. Though, you could make it ../cover.png or whatever, if you want. Unless...
 
 
 ### Changing the Input Directory
@@ -49,7 +49,7 @@ This'd also get the songs from poop/input.txt
 ### Comments
 \#This is a comment
 Simple enough; Comments start with a hash(\#) symbol and continue to the end of the line. Comments must start at the beginning of a line, though it may be preceeded by whitespace.
-## Installing/Updating*
+## Installing/Updating\*
 \*Linux exclusive. \*BSD and MacOS would probably work, but it's untested.
 You must have the following software installed:
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp)
