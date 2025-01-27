@@ -12,7 +12,9 @@ And what about local media? It'd be nice to manage "b{ALL}" songs with one file.
 		h3{"Songs"}
 		"Adding a song to an input file is as follows:"
 		newline()
-		"$source | ($artist_name -)  $song_name  | ($cover)"
+		newline()
+		code{"$source | ($artist_name -)  $song_name  (| $cover)"}
+		newline()
 		newline()
 		"Everything in parenthesis is optional"
 		table(
@@ -26,27 +28,27 @@ And what about local media? It'd be nice to manage "b{ALL}" songs with one file.
 		newline()
 		"Example:"
 		newline()
-		"!https://www.youtube.com/watch?v=dQw4w9WgXcQ | Rick Astley - Never Gonna Give You Up | !https://www.blender.org/wp-content/themes/bthree/assets/icons/favicon-32x32.png"
+		code{"!https://www.youtube.com/watch?v=dQw4w9WgXcQ | Rick Astley - Never Gonna Give You Up | !https://www.blender.org/wp-content/themes/bthree/assets/icons/favicon-32x32.png"}
 		newline()
 		p{"This sets Never Gonna Give You Up from YouTube as the source, sets Rick Astley as the artist, and uses the Blender.org favicon as the cover, which it downloads. The outputted file would be named \"Rick Astley - Never Gonna Give You Up.ogg\"."}
 		newline()
 		"Example #2:"
 		newline()
-		"song.mp4 | artist - song | cover.png"
+		code{"song.mp4 | artist - song | cover.png"}
 		newline()
 		p{"This would get the audio of song.mp4, set the song name to "artist - song", and the cover image to cover.png. The outputted file would be named \"artist - song.ogg\". Also, song.mp4 and cover.png would need to be in the same directory. Though, you could make it ../cover.png or whatever, if you want. Unless..."}
 		h3{"Changing the Input Directory"}
 		"By default, song sources and covers will be taken relative to the directory of the current input file. You can set it to another directory by starting a line with the asterisk (\*) and then writing the new directory you want to use."
 		newline()
 		"For example:"
-		"*/home/user"
+		code{"*/home/user"}
 		newline()
 		"Would set the default directory to /home/username (if the path doesn't begin with a slash, it will ALSO be relative to the current file). This applies only to the current file."
 		h3{"Imports"}
 		"You can import another input file by starting a line with an at sign (@) and writing the path to the other file, relative to the current directory MDS is using.
 For example:"
 		newline()
-		"@poop/input.txt"
+		code{"@poop/input.txt"}
 		newline()
 		"This'd also get the songs from poop/input.txt"
 		h3{"Comments"}

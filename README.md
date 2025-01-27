@@ -9,7 +9,9 @@ MDS does what it says on the tin: it downloads music! (or copies them from local
 
 ### Songs
 Adding a song to an input file is as follows:
-$source | ($artist\_name -)  $song\_name  | ($cover)
+
+`$source | ($artist\_name -)  $song\_name  (| $cover)`
+
 Everything in parenthesis is optional
 Variable|Meaning|
 |-|-|
@@ -24,27 +26,27 @@ Note that MDS will attempt to automatically get the cover of a YouTube or SoundC
 
 
 Example:
-!https://www.youtube.com/watch?v=dQw4w9WgXcQ | Rick Astley - Never Gonna Give You Up | !https://www.blender.org/wp-content/themes/bthree/assets/icons/favicon-32x32.png
+`!https://www.youtube.com/watch?v=dQw4w9WgXcQ | Rick Astley - Never Gonna Give You Up | !https://www.blender.org/wp-content/themes/bthree/assets/icons/favicon-32x32.png`
 
 
 This sets Never Gonna Give You Up from YouTube as the source, sets Rick Astley as the artist, and uses the Blender.org favicon as the cover, which it downloads. The outputted file would be named "Rick Astley - Never Gonna Give You Up.ogg".
 
 
 Example \#2:
-song.mp4 | artist - song | cover.png
+`song.mp4 | artist - song | cover.png`
 
 
-This would get the audio of song.mp4, set the song name to artistsong, and the cover image to cover.png. The outputted file would be named "artist - song.ogg". Also, song.mp4 and cover.png would need to be in the same directory. Though, you could make it ../cover.png or whatever, if you want. Unless...
+This would get the audio of song.mp4, set the song name to artist-song, and the cover image to cover.png. The outputted file would be named "artist - song.ogg". Also, song.mp4 and cover.png would need to be in the same directory. Though, you could make it ../cover.png or whatever, if you want. Unless...
 
 
 ### Changing the Input Directory
 By default, song sources and covers will be taken relative to the directory of the current input file. You can set it to another directory by starting a line with the asterisk (\*) and then writing the new directory you want to use.
-For example:\*/home/user
+For example:`\*/home/user`
 Would set the default directory to /home/username (if the path doesn't begin with a slash, it will ALSO be relative to the current file). This applies only to the current file.
 ### Imports
 You can import another input file by starting a line with an at sign (@) and writing the path to the other file, relative to the current directory MDS is using.
 For example:
-@poop/input.txt
+`@poop/input.txt`
 This'd also get the songs from poop/input.txt
 ### Comments
 \#This is a comment

@@ -1,16 +1,9 @@
 #this is a comment
 
 
-
-
-
-
 */home/user
 !https://www.youtube.com/watch?v=2ZIpFytCSVc | bruh
-!https://soundcloud.com/bruh-smoke-productions/bruh-sound-effect-free-download | c - ghost
+!https://soundcloud.com/bruh-smoke-productions/bruh-sound-effect-free-download | bruh sound effect
 bruh.flac | bruhagain
 
-
-# this should error
-!klaksjfklsajfskldjfklasdf | adaaaaaaaa
 
