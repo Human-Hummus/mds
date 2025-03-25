@@ -1,10 +1,8 @@
 //this file is a mess.
-
-extern crate log;
-use log::{warn, info, trace};
 use crate::download::gen_filename;
+use crate::*;
 use std::fs;
-use std::process::Command;
+use std::io::Write;
 
 //the output is a file path OR None.
 pub fn process_cover(
@@ -16,18 +14,17 @@ pub fn process_cover(
     verbosity: u8,
 ) -> Option<String> {
     if is_url {
-        let new_cover = wget_cover(&(og_cover.clone().unwrap()));
-        trace!("{:?}", og_cover);
+        let new_cover = get_cover(&(og_cover.clone().unwrap()));
         match new_cover {
             Ok(nc) => {
                 if verbosity > 1 {
-                    trace!("Successfully downloaded cover art for \"{title}\" automatically!")
+                    info!("Successfully downloaded cover art for \"{title}\" automatically!")
                 }
                 return Some(nc);
-            },
-            _ =>{
-                trace!("Alert: unable to download cover for \"{}\"", title);
-                return None
+            }
+            _ => {
+                trivial!("Alert: unable to download cover for \"{}\"", title);
+                return None;
             }
         };
     } else if og_cover.is_none() && is_infile_link {
@@ -42,8 +39,8 @@ fn download_cover_art(infile: &String, title: &String) -> Option<String> {
         || infile.contains("https://youtube.com")
         || infile.contains("https:/youtu.be")
     {
-        if infile.contains("&"){
-            warn!("Warning: song \"{title}\" has an input URL that contains additional information (detected by an ampersand). Consider removing this information as it may impair automatic thumbnail downloading.")
+        if infile.contains("&") {
+            fatal!("Song \"{title}\" has a URL that contains additional information (detected by an ampersand). Remove this information as it may impair automatic downloading.")
         }
         return youtube(infile, title);
     }
@@ -52,22 +49,25 @@ fn download_cover_art(infile: &String, title: &String) -> Option<String> {
     }
     None
 }
-
-fn wget_cover(url: &String) -> Result<String, ()> {
-    let newfilename = gen_filename(&"".to_string());
-    return match std::process::Command::new("wget")
-        .arg("-q")
-        .arg(url)
-        .arg("-O")
-        .arg(newfilename.clone())
-        .status()
-    {
-        Ok(k) => match k.success() {
-            true => Ok(newfilename),
-            false => Err(()),
-        },
-        Err(_) => Err(()),
+macro_rules! err_to_empty_err {
+    ($x:expr) => {
+        match $x {
+            Ok(value) => Ok(value),
+            Err(_) => return Err(()),
+        }
     };
+}
+
+fn get_cover(url: &String) -> Result<String, ()> {
+    let runtime = err_to_empty_err!(tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build())?;
+    let filename = gen_filename("");
+    let content = err_to_empty_err!(
+        runtime.block_on(err_to_empty_err!(runtime.block_on(reqwest::get(url)))?.bytes())
+    )?;
+    err_to_empty_err!(err_to_empty_err!(fs::File::create(&filename))?.write_all(&content))?;
+    Ok(filename)
 }
 
 fn youtube(infile: &String, title: &String) -> Option<String> {
@@ -75,39 +75,39 @@ fn youtube(infile: &String, title: &String) -> Option<String> {
     if infile.contains("https://youtube.com") || infile.contains("https://www.youtube.com") {
         the_vid_link = infile
             .split("https://www.youtube.com/watch?v=")
-            .collect::<Vec<&str>>()[1]
+            .nth(1)?
             .to_owned();
     }
     if infile.contains("https://youtu.be") {
-        the_vid_link = infile.split("https://www.youtu.be/").collect::<Vec<&str>>()[1].to_owned();
+        the_vid_link = infile.split("https://www.youtu.be/").nth(1)?.to_owned();
     }
-    match wget_cover(&("https://i.ytimg.com/vi/".to_owned() + &the_vid_link + "/hqdefault.jpg")){
+    match get_cover(&format!(
+        "https://i.ytimg.com/vi/{the_vid_link}/hqdefault.jpg"
+    )) {
         Ok(tr) => return Some(tr),
         _ => {}
     }
-    match wget_cover(&("https://i.ytimg.com/vi/".to_owned() + &the_vid_link + "/hq720.jpg")){
+    match get_cover(&format!("https://i.ytimg.com/vi/{the_vid_link}/hq720.jpg")) {
         Ok(tr) => return Some(tr),
         _ => {}
     }
 
-    info!("Failed to automatically download cover art for \"{}\". This can be ignored.",title);
+    info!("Failed to automatically download cover art for \"{title}\". This can be ignored.");
     None
 }
 
 fn soundcloud(infile: &String, title: &String) -> Option<String> {
-    let sc_html_file = wget_cover(infile);
-    if sc_html_file.is_err(){
-        trace!("Error downloading cover from soundcloud for \"{title}\"");
-        return None
-    }
-    let contents = fs::read_to_string(sc_html_file.clone().unwrap()).unwrap();
+    let soundcloud_html_file = match get_cover(infile) {
+        Ok(value) => value,
+        Err(_) => {
+            warn!("Error downloading cover from soundcloud for \"{title}\"");
+            return None;
+        }
+    };
+    let contents = fs::read_to_string(soundcloud_html_file.clone()).unwrap();
     if !contents.contains("src=\"https://i1.sndcdn.com") {
-        Command::new("rm")
-            .arg("-f")
-            .arg(sc_html_file.unwrap())
-            .status()
-            .expect("This error shouln't be possible...");
-        trace!("Error downloading cover from soundcloud for \"{title}\"");
+        fs::remove_file(soundcloud_html_file).unwrap();
+        warn!("Error downloading cover from soundcloud for \"{title}\"");
         return None;
     }
 
@@ -116,30 +116,18 @@ fn soundcloud(infile: &String, title: &String) -> Option<String> {
         "https://i1.sndcdn.com{}",
         contents
             .split("src=\"https://i1.sndcdn.com")
-            .collect::<Vec<&str>>()[1]
-            .to_string()
+            .nth(1)?
             .split("\"")
-            .collect::<Vec<&str>>()[0]
+            .nth(0)?
             .trim()
             .to_owned()
     );
-
-    trace!("Soundcloud cover art function: img_link: {img_link}");
-    Command::new("rm")
-        .arg("-f")
-        .arg(sc_html_file.unwrap())
-        .status()
-        .expect("This error shouln't be possible...");
-    match wget_cover(&img_link) {
+    fs::remove_file(soundcloud_html_file).unwrap();
+    match get_cover(&img_link) {
         Err(_) => {
-            trace!(
-                "(2)Error downloading soundcloud cover art for \"{}\"",
-                title
-            );
-            return None;
+            warn!("(2)Error downloading soundcloud cover art for \"{title}\"");
+            None
         }
-        Ok(x) => {
-            return Some(x);
-        }
+        Ok(value) => Some(value),
     }
 }

@@ -1,6 +1,5 @@
+use crate::*;
 use std::{fs::read_to_string, path::Path};
-extern crate log;
-
 
 #[derive(Debug, Clone)]
 pub struct SongDesc {
@@ -10,18 +9,6 @@ pub struct SongDesc {
     pub is_file_url: bool,
     pub cover: Option<String>,
     pub is_cover_url: bool,
-}
-impl SongDesc {
-    pub fn clone(&self) -> SongDesc {
-        return SongDesc {
-            artist: self.artist.clone(),
-            name: self.name.clone(),
-            infile: self.infile.clone(),
-            is_file_url: self.is_file_url,
-            cover: self.cover.clone(),
-            is_cover_url: self.is_cover_url,
-        };
-    }
 }
 fn lines_to(chars: &Vec<char>, pos: usize) -> usize {
     if pos >= chars.len() {
@@ -39,7 +26,7 @@ fn lines_to(chars: &Vec<char>, pos: usize) -> usize {
 
 pub fn parse_file(path: &String) -> Vec<SongDesc> {
     let text = read_to_string(path)
-        .unwrap_or_else(|_| panic!("Fatal Error: unable to read file \"{}\"", path))
+        .unwrap_or_else(|_| fatal!("Unable to read file \"{}\"", path))
         .chars()
         .collect::<Vec<char>>();
 
@@ -80,7 +67,7 @@ pub fn parse_file(path: &String) -> Vec<SongDesc> {
                     song.infile.push(text[x]);
                     x += 1;
                     if x == text.len() || text[x] == '\n' {
-                        panic!("In file \"{}\" on line \"{}\" there is an incomplete or invalid command", path, lines_to(&text, x))
+                        fatal!("In file \"{path}\" on line \"{}\" there is an incomplete or invalid command", lines_to(&text, x))
                     }
                 }
                 x += 1;
@@ -90,13 +77,8 @@ pub fn parse_file(path: &String) -> Vec<SongDesc> {
                     song.infile = current_home.clone() + &song.infile
                 }
                 if song.infile.len() < 1 {
-                    panic!(
-                        "In file \"{}\" on line \"{}\" there is an incomplete or invalid command",
-                        path,
-                        lines_to(&text, x)
-                    )
+                    fatal!("In file \"{path}\" on line \"{}\" there is an incomplete or invalid command",lines_to(&text, x))
                 }
-
                 while x < text.len() {
                     song.name.push(text[x]);
                     x += 1;
@@ -111,13 +93,9 @@ pub fn parse_file(path: &String) -> Vec<SongDesc> {
 
                 song.name = song.name.trim().to_owned();
                 if song.name.len() < 1 {
-                    panic!(
-                        "In file \"{}\" on line \"{}\" there is an incomplete or invalid command",
-                        path,
-                        lines_to(&text, x)
-                    )
+                    fatal!("In file \"{path}\" on line \"{}\" there is an incomplete or invalid command",lines_to(&text, x))
                 }
-                let mut cover = String::new(); 
+                let mut cover = String::new();
                 while x < text.len() && text[x] != '\n' {
                     cover.push(text[x]);
                     x += 1
@@ -128,13 +106,14 @@ pub fn parse_file(path: &String) -> Vec<SongDesc> {
                 if cover.len() > 0 {
                     if cover.chars().nth(0).unwrap() == '!' {
                         song.is_cover_url = true;
-                        song.cover = Some(cover.chars().collect::<Vec<char>>()
-                            [1..cover.len()]
-                            .iter()
-                            .cloned()
-                            .collect::<String>())
+                        song.cover = Some(
+                            cover.chars().collect::<Vec<char>>()[1..cover.len()]
+                                .iter()
+                                .cloned()
+                                .collect::<String>(),
+                        )
                     } else {
-                        song.cover = Some(format!("{}{}", current_home, cover))
+                        song.cover = Some(format!("{current_home}{cover}"))
                     }
                 } else {
                     song.cover = None
@@ -152,7 +131,7 @@ pub fn parse_file(path: &String) -> Vec<SongDesc> {
                 if current_home_tmp[current_home_tmp.len() - 1] != '/' {
                     current_home_tmp.push('/');
                 }
-                current_home = current_home_tmp.into_iter().collect();
+                current_home = current_home_tmp.iter().collect();
             }
             '@' => {
                 x += 1;
@@ -177,18 +156,22 @@ pub fn parse_file(path: &String) -> Vec<SongDesc> {
     toret
 }
 
-pub fn get_artist_name(input:&mut Vec<SongDesc>){
+pub fn get_artist_name(input: &mut Vec<SongDesc>) {
     let mut x = 0;
-    while x < input.len(){
-        if !input[x].name.contains("-"){x+=1;continue}
-        let mut y = 0;
-        let title_chars:Vec<char> = input[x].name.chars().collect();
-        let mut artist = String::new();
-        while y < title_chars.len() && title_chars[y] != '-'{
-            artist.push(title_chars[y]);
-            y+=1;
+    while x < input.len() {
+        if !input[x].name.contains("-") {
+            x += 1;
+            continue;
         }
-        input[x].artist=artist.trim().to_owned();
-        x+=1;
+        let mut y = 0;
+        let title_chars: Vec<char> = input[x].name.chars().collect();
+        let mut artist = String::new();
+        while y < title_chars.len() && title_chars[y] != '-' {
+            artist.push(title_chars[y]);
+            y += 1;
+        }
+        input[x].artist = artist.trim().to_owned();
+        x += 1;
     }
 }
+

@@ -1,20 +1,21 @@
 use crate::parser::*;
 use crate::search::*;
-use std::env;
+use termion::color;
 pub mod download;
+pub mod logging;
 pub mod parser;
 pub mod search;
 extern crate question;
-extern crate log;
-use log::{warn, info, trace};
+extern crate reqwest;
 extern crate termion;
-use question::Answer;
-use question::Question;
+use question::{Answer, Question};
+use std::env;
 
 //------------- DEFAULTS -------------
 const DEFAULT_FILE_FORMAT: FileFormat = FileFormat::Flac;
 //------------- DEFAULTS -------------
 
+#[derive(Clone)]
 pub enum FileFormat {
     Flac,
     Opus,
@@ -23,18 +24,8 @@ pub enum FileFormat {
     Vorbis,
     Aac,
 }
-impl FileFormat {
-    pub fn clone(&self) -> FileFormat {
-        match self {
-            FileFormat::Flac => FileFormat::Flac,
-            FileFormat::Opus => FileFormat::Opus,
-            FileFormat::Mp3 => FileFormat::Mp3,
-            FileFormat::Wav => FileFormat::Wav,
-            FileFormat::Vorbis => FileFormat::Vorbis,
-            FileFormat::Aac => FileFormat::Aac,
-        }
-    }
-}
+
+#[derive(Clone)]
 pub struct Options {
     bitrate: Option<String>,
     format: FileFormat,
@@ -45,7 +36,7 @@ pub struct Options {
 }
 
 fn main() {
-    colog::init();
+    //use std::time::Instant;
     //0: only errors
     //1: only errors and warnings
     //2: all.
@@ -70,15 +61,13 @@ fn main() {
     while x < args.len() {
         match args[x].as_str() {
             "--help" | "-h" => {
-                println!(include_str!("help.txt"));
+                info!(include_str!("help.txt"));
                 std::process::exit(0);
             }
             "-i" | "--input" => {
                 x += 1;
-
-                //check that the argument is complete.
                 if x == args.len() {
-                    panic!("fatal error: incomplete input argument.");
+                    fatal!("Incomplete input argument.");
                 }
 
                 //read the file.
@@ -86,13 +75,12 @@ fn main() {
             }
             "-o" | "--output" => {
                 x += 1;
-                //check for a complete argument
                 if x == args.len() {
-                    panic!("fatal error: output directory arguemnt incomplete.")
+                    fatal!("Output directory arguemnt incomplete.")
                 }
 
                 if std::path::Path::new(&args[x]).exists() == false {
-                    panic!("Fatal error: output dir does not exist.")
+                    fatal!("Output dir does not exist.")
                 }
                 conf.output_dir = match &args[x].chars().nth(args[x].len() - 1).unwrap() {
                     '/' => args[x].clone(),
@@ -100,18 +88,17 @@ fn main() {
                 };
             }
             "--search" | "-s" => {
-                x+=1;
-                if x == args.len(){
-                    panic!("Fatal error: no search term provided.");
+                x += 1;
+                if x == args.len() {
+                    fatal!("No search term provided.");
                 }
                 searching = true;
                 search_query = args[x].to_lowercase();
-                
             }
             "--format" | "-f" => {
                 x += 1;
                 if x == args.len() {
-                    panic!("fatal error: format arguemnt incomplete.")
+                    fatal!("fatal error: format arguemnt incomplete.")
                 }
                 conf.format = match args[x].to_lowercase().trim() {
                     "f" | "flac" => FileFormat::Flac,
@@ -120,7 +107,7 @@ fn main() {
                     "w" | "wav" => FileFormat::Wav,
                     "v" | "vorbis" => FileFormat::Vorbis,
                     "a" | "aac" => FileFormat::Aac,
-                    _ => panic!("fatal error: invalid format"),
+                    _ => fatal!("fatal error: invalid format"),
                 }
             }
             "--do-not-warn" => print_warning = false,
@@ -129,35 +116,33 @@ fn main() {
             "--quiet" | "-q" => verbosity = 1,
             "--silent" | "-Q" => verbosity = 0,
             "--no-artist" | "-n" => get_artist = false,
-            _ => warn!("warning: unknown argument: \"{}\"", args[x]),
+            _ => warn!("Unknown argument: \"{}\"", (args[x])),
         };
         x += 1
     }
     if conf.input_file.len() < 1 {
-        panic!("fatal error: no input file specified")
+        fatal!("No input file specified")
     }
-    if conf.output_dir.len() < 1 && !searching{
-        panic!("fatal error: no output directory specified")
+    if conf.output_dir.len() < 1 && !searching {
+        fatal!("No output directory specified")
     }
-
+    //let mut now = Instant::now();
     conf.songs = parser::parse_file(&conf.input_file.to_string());
-    if get_artist{
+    if get_artist {
         parser::get_artist_name(&mut conf.songs)
     }
-    trace!("full parser output: {:?}\n\n\n", conf.songs);
-    if searching{
+    //info!("Parser took {:?}", now.elapsed());
+    //now = Instant::now();
+    if searching {
         search_files(conf.songs, search_query);
         std::process::exit(0)
     }
-    download::download(
-        match conf.clean_dir {
-            true => conf.clone(),
-            false => conf.clone(),
-        },
-        verbosity,
-    );
+    download::download(conf.clone(), verbosity);
+    //info!("Downloader took {:?}", now.elapsed());
+    //now = Instant::now();
     if conf.clean_dir {
         clean_directory(print_warning, conf);
+        //info!("Cleaner took {:?}", now.elapsed());
     }
 }
 
@@ -184,7 +169,7 @@ fn clean_directory(warning: bool, conf: Options) {
             }
             out
         }
-        Err(_) => panic!("fatal error: unknown file \"{}\"", conf.output_dir),
+        Err(_) => fatal!("Unknown file \"{}\"", conf.output_dir),
     };
 
     'bigloop: for file in files {
@@ -198,36 +183,36 @@ fn clean_directory(warning: bool, conf: Options) {
                 && Question::new("Are you sure you want to remove unlisted files?").confirm()
                     == Answer::NO
             {
-                panic!("Fatal Error: Music downloaded, but no files were deleted");
+                fatal!("Music downloaded, but no files were deleted");
             }
             initial_warning = false;
-            if Question::new(
-                format!(
-                    "\"{}\"({}) is not listed in the input file, delete it?",
-                    file.0, file.1
-                )
-                .as_str(),
-            )
+            if Question::new(&format!(
+                "\"{}\"({}) is not listed in the input file, delete it?",
+                file.0, file.1
+            ))
             .confirm()
                 == Answer::NO
             {
-                panic!("fatal: file deletion aborted, {files_deleted} files deleted.")
+                fatal!("File deletion aborted, {files_deleted} files deleted.")
             }
         }
-        match std::fs::remove_file(&file.1){
-            Ok(_) => {info!("Deleted file \"{}\".",file.1);files_deleted+=1},
-            Err(tp)=> panic!("Fatal: Failed to delete file \"{}\"({}). {files_deleted} files deleted. Error: {tp}",file.0, file.1)
+        match std::fs::remove_file(&file.1) {
+            Ok(_) => {
+                info!("Deleted file \"{}\".", file.1);
+                files_deleted += 1
+            }
+            Err(tp) => fatal!(
+                "Failed to delete file \"{}\"({}). {files_deleted} files deleted. Error: {tp}",
+                file.0,
+                file.1
+            ),
         };
     }
     info!(
-        "{files_deleted} file{} {} deleted",
+        "{files_deleted} file{} deleted",
         match files_deleted {
-            1 => "",
-            _ => "s",
-        },
-        match files_deleted {
-            1 => "was",
-            _ => "were",
+            1 => " was",
+            _ => "s were",
         }
     );
 }
@@ -238,41 +223,29 @@ fn is_sane() {
     let programs_needed = ["yt-dlp", "ffmpeg", "wget"];
     for i in programs_needed {
         if which(i).is_err() {
-            panic!("Fatal error: {i} cannot be found")
+            fatal!("Program {i} cannot be found")
         }
     }
 }
 
 impl Options {
     //to be passed to ffmpeg
-    pub fn bitrate(&self) -> String {
+    pub fn bitrate(&self) -> &str {
         match &self.bitrate {
-            None => match self.format {
+            Some(value) => value,
+            _ => match self.format {
                 FileFormat::Flac => "0",
                 FileFormat::Wav => "0",
                 FileFormat::Mp3 => "320k",
                 FileFormat::Aac => "256k",
                 FileFormat::Vorbis => "224k",
                 FileFormat::Opus => "192k",
-            }
-            .to_string(),
-            Some(val) => val.clone(),
+            },
         }
     }
 
-    pub fn clone(&self) -> Options {
-        return Options {
-            bitrate: self.bitrate.clone(),
-            format: self.format.clone(),
-            input_file: self.input_file.clone(),
-            output_dir: self.output_dir.clone(),
-            songs: self.songs.clone(),
-            clean_dir: self.clean_dir,
-        };
-    }
-
     //again, for ffmpeg
-    pub fn codec(&self) -> String {
+    pub fn codec(&self) -> &str {
         match self.format {
             FileFormat::Flac => "flac",
             FileFormat::Wav => "wav",
@@ -281,10 +254,9 @@ impl Options {
             FileFormat::Vorbis => "libvorbis",
             FileFormat::Opus => "libopus",
         }
-        .to_string()
     }
 
-    pub fn file_extension(&self) -> String {
+    pub fn file_extension(&self) -> &str {
         match self.format {
             FileFormat::Flac => ".flac",
             FileFormat::Wav => ".wav",
@@ -293,6 +265,5 @@ impl Options {
             FileFormat::Vorbis => ".ogg",
             FileFormat::Opus => ".ogg",
         }
-        .to_string()
     }
 }

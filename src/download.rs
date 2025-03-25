@@ -1,19 +1,18 @@
 use delete;
 use rand;
-use rand::distributions::{Distribution, Uniform};
-extern crate log;
-use log::{info, trace, error};
+use rand::prelude::IteratorRandom;
 mod cover;
 use crate::*;
+use termion::color;
 
 pub fn download(conf: Options, verbosity: u8) {
     let files: Vec<String> = match std::fs::read_dir(&conf.output_dir) {
         Ok(file) => {
-            let mut out: Vec<String> = [].to_vec();
+            let mut out: Vec<String> = Vec::new();
             for i in file {
                 out.push(
                     i.unwrap_or_else(|_| {
-                        panic!("Error Reading dir \"{}\"", conf.output_dir)
+                        fatal!("Failed to read directory \"{}\"", conf.output_dir);
                     })
                     .path()
                     .file_stem()
@@ -25,7 +24,7 @@ pub fn download(conf: Options, verbosity: u8) {
             out.sort();
             out
         }
-        Err(_) => panic!("fatal error: unknown file \"{}\"", conf.output_dir),
+        Err(_) => fatal!("Unknown directory \"{}\"", conf.output_dir),
     };
     let (
         mut total_files_already_present,
@@ -40,7 +39,9 @@ pub fn download(conf: Options, verbosity: u8) {
         let infile: String;
 
         if is_done(&song.name, &files) {
-            trace!("file \"{}\" is already present.", song.name);
+            if verbosity <= 1 {
+                trivial!("file \"{}\" is already present.", song.name);
+            }
             total_files_already_present += 1.0;
             x += 1;
             continue;
@@ -66,16 +67,15 @@ pub fn download(conf: Options, verbosity: u8) {
         );
 
         if song.is_file_url {
-            trace!("tdx {:?}", song);
             infile = match tmp_ytdlp(&song.infile) {
-                None => {
+                Some(value) => value,
+                _ => {
                     errored += 1.0;
                     file_errors += &format!("\n\t* \"{}\"", song.name);
                     error!("Error while downloading \"{}\".", song.name);
                     x += 1;
                     continue;
                 }
-                Some(val) => val,
             }
         } else {
             infile = song.infile.clone();
@@ -83,7 +83,7 @@ pub fn download(conf: Options, verbosity: u8) {
 
         let outfile: String = format!(
             "{}{}{}",
-            &match &conf
+            match &conf
                 .output_dir
                 .chars()
                 .nth(conf.output_dir.len() - 1)
@@ -95,18 +95,12 @@ pub fn download(conf: Options, verbosity: u8) {
             song.name,
             conf.file_extension()
         );
-
-        match final_ffmpeg(&song.cover, &outfile, &infile, &conf, &song.artist) {
-            Some(_) => (),
-            None => {
-                error!(
-                    "Non-fatal error: failed to convert \"{}\"",
-                    song.name
-                );
-                x += 1;
-                continue;
-            }
-        };
+        // if final_ffmpeg fails
+        if !final_ffmpeg(&song.cover, &outfile, &infile, &conf, &song.artist) {
+            error!("Failed to convert \"{}\"", song.name);
+            x += 1;
+            continue;
+        }
         if song.is_file_url {
             delete::delete_file(&infile).unwrap();
         }
@@ -120,22 +114,22 @@ pub fn download(conf: Options, verbosity: u8) {
         info!(
             "Total files already present: {:.0}({:.1}%).",
             total_files_already_present,
-            match ((total_files_already_present / total_songs_seen) as f32).is_nan(){
+            match ((total_files_already_present / total_songs_seen) as f32).is_nan() {
                 true => 100.0,
-                _ => 100.0 * (total_files_already_present / total_songs_seen)
+                _ => 100.0 * (total_files_already_present / total_songs_seen),
             }
         );
         info!(
             "Total files failed: {:.0}({:.0}%)",
             errored,
-            match ((errored/total_files_already_present) as f32).is_nan(){
+            match ((errored / total_files_already_present) as f32).is_nan() {
                 true => 0.0,
-                _ => 100.0 * (errored / total_files_already_present)
+                _ => 100.0 * (errored / total_files_already_present),
             }
         );
     }
-    if file_errors != String::new() {
-        error!("List of files failed:{file_errors}")
+    if file_errors != "" {
+        error!("List of files failed:\n{file_errors}");
     }
 }
 
@@ -144,77 +138,48 @@ fn final_ffmpeg(
     outputfile: &String,
     infile: &String,
     conf: &Options,
-    artist: &String
-) -> Option<i8> {
-    match cover{
-        None =>{
-            let mut cmd = std::process::Command::new("ffmpeg");
-            cmd.arg("-i")
-            .arg(infile.trim().to_owned())
-            .arg("-c:a")
-            .arg(conf.codec())
-            .arg("-b:a")
-            .arg(conf.bitrate())
-            .arg("-loglevel")
-            .arg("error");
-
-            if artist != ""{
-                cmd.arg("-metadata:s:v").arg(format!("title=\"{artist}\""));
-            }
-            cmd.arg(outputfile);
-
-            cmd.status().ok()?},
-    
-        Some(cvr) => {
-            let mut cmd = std::process::Command::new("ffmpeg");
-
-            cmd.arg("-i")
-            .arg(infile.trim().to_owned())
-            .arg("-i")
-            .arg(cvr.trim().to_owned())
+    artist: &String,
+) -> bool {
+    // succeeded?
+    let mut cmd = std::process::Command::new("ffmpeg");
+    cmd.arg("-i").arg(infile.trim());
+    if cover.is_some() {
+        cmd.arg("-i")
+            .arg(cover.clone().unwrap().trim())
             .arg("-map")
             .arg("0:a")
             .arg("-map")
             .arg("1:v")
-            .arg("-c:a")
-            .arg(conf.codec())
-            .arg("-b:a")
-            .arg(conf.bitrate())
             .arg("-disposition:1")
-            .arg("attached_pic")
-            .arg("-loglevel")
-            .arg("error");
-            if artist != ""{
-                cmd.arg("-metadata:s:v").arg(format!("title={artist}"));
-            }
-            cmd.arg(outputfile);
-
-            cmd.status().ok()?}
-    };
-    Some(0)
+            .arg("attached_pic");
+    }
+    cmd.arg("-c:a")
+        .arg(conf.codec())
+        .arg("-b:a")
+        .arg(conf.bitrate())
+        .arg("-loglevel")
+        .arg("error");
+    if artist != "" {
+        cmd.arg("-metadata:s:v").arg(format!("title=\"{artist}\""));
+    }
+    match cmd.arg(outputfile).status().ok() {
+        Some(value) => value.success(),
+        _ => false,
+    }
 }
 
-#[inline(always)]
-pub fn gen_filename(fex: &String) -> String {
-    let mut length = 100;
-    let chars_allowed = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890-_"
-        .chars()
-        .collect::<Vec<char>>();
+pub fn gen_filename(fex: &str) -> String {
+    let mut rng = rand::thread_rng();
+    let chars_allowed = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890-_";
     let mut fname = "/tmp/".to_string();
-    length -= fname.len() + fex.len();
-
-    while length != 0 {
-        length -= 1;
-        fname.push(
-            chars_allowed
-                [Uniform::from(0..chars_allowed.len() - 1).sample(&mut rand::thread_rng())],
-        );
+    for _ in 0..100 {
+        fname.push(chars_allowed.chars().choose(&mut rng).unwrap())
     }
-    return fname.to_owned() + fex;
+    fname + fex
 }
 
 fn tmp_ytdlp(url: &String) -> Option<String> {
-    let fname = gen_filename(&".flac".to_owned());
+    let fname = gen_filename(".flac");
     match std::process::Command::new("yt-dlp")
         .arg(url)
         .arg("-x")
@@ -233,10 +198,6 @@ fn tmp_ytdlp(url: &String) -> Option<String> {
     }
 }
 
-#[inline(always)]
 fn is_done(title: &String, files: &Vec<String>) -> bool {
-    match files.binary_search(title) {
-        Ok(_) => true,
-        _ => false,
-    }
+    files.binary_search(title).is_ok()
 }
